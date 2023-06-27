@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import cv2
 import os
@@ -36,8 +38,10 @@ def load_model_ultralytics(model_path):
     return model
 
 
-def run_predictions_on_video(model, video_filepath):
+def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False):
     capture = cv2.VideoCapture(video_filepath)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter('output.mp4', fourcc, 30, (480, 640))
     while True:
         ret, frame = capture.read()
         if frame is None:
@@ -47,12 +51,23 @@ def run_predictions_on_video(model, video_filepath):
         bounding_boxes = results.boxes
         for box in bounding_boxes:
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-            color = (140, 230, 240) if class_id == 0 else (0, 0, 255)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+        if show:
+            cv2.imshow('frame', frame)
+            if cv2.waitKey(30) & 0xFF == ord('q'):
+                break
+        else:
+            video_writer.write(frame)
+    capture.release()
+    video_writer.release()
 
 
 if __name__ == '__main__':
     model_path = os.path.abspath('./runs/detect/train7/weights/best.pt')
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     frame_ind = 120
-    load_model_ultralytics(model_path, video_filepath, frame_ind)
+    model = load_model_ultralytics(model_path)
+    run_predictions_on_video(model, video_filepath, show=False)
