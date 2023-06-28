@@ -7,11 +7,6 @@ import numpy as np
 import ultralytics
 
 
-def load_yolo_model(model_path):
-    model = torch.load(model_path)
-    return model
-
-
 def get_frame_from_video(path: str, frame_ind: int):
     cap = cv2.VideoCapture(path)
     frame = None
@@ -20,17 +15,23 @@ def get_frame_from_video(path: str, frame_ind: int):
     return frame
 
 
-def load_yolo_model_pytorch(model_path, video_filepath, frame_ind):
-    model_and_info = load_yolo_model(model_path)
-    model = model_and_info['model']
+def load_model_pytorch(model_path=None, num_classes=None):
+    if model_path is None:
+        model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, classes=num_classes)
+        print(model)
+    else:
+        model = torch.hub.load('ultralytics/yolov5', 'yolov5s', path=model_path)
+    # print(model)
     model.eval()
-    frame = get_frame_from_video(video_filepath, frame_ind)  # 120
-    frame = frame / 255.0
-    frame = frame.transpose(2, 0, 1)
-    frame_tensor = torch.from_numpy(frame).unsqueeze(0)
-    frame_tensor = frame_tensor.type(torch.float16)
-    results = model(frame_tensor)
-    results.print()
+    # model = model_and_info['model']
+    # frame = get_frame_from_video(video_filepath, frame_ind)  # 120
+    # frame = frame / 255.0
+    # frame = frame.transpose(2, 0, 1)
+    # frame_tensor = torch.from_numpy(frame).unsqueeze(0)
+    # frame_tensor = frame_tensor.type(torch.float16)
+    # results = model(frame_tensor)
+    # results.print()
+    return model
 
 
 def load_model_ultralytics(model_path):
@@ -38,7 +39,7 @@ def load_model_ultralytics(model_path):
     return model
 
 
-def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False):
+def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[bool] = False):
     capture = cv2.VideoCapture(video_filepath)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video_writer = cv2.VideoWriter('output.mp4', fourcc, 30, (480, 640))
@@ -66,8 +67,21 @@ def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False
 
 
 if __name__ == '__main__':
-    model_path = os.path.abspath('./runs/detect/train7/weights/best.pt')
+    # model_path = os.path.abspath('./runs/detect/train7/weights/best.pt')
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
-    frame_ind = 120
-    model = load_model_ultralytics(model_path)
-    run_predictions_on_video(model, video_filepath, show=False)
+    image_filepath = os.path.abspath('images/image_AppMAIS3LB@2023-06-26@11-55-00.png')
+    # frame_ind = 120
+    model = load_model_pytorch(num_classes=2)
+    image = cv2.imread(image_filepath)
+    image = image / 255.0
+    image = image.transpose(2, 0, 1)
+    image_tensor = torch.from_numpy(image).unsqueeze(0)
+    image_tensor = image_tensor.type(torch.float32)
+    results = model(image_tensor)
+    print(results[1])
+    print(len(results))
+    print(len(results[1]))
+    print(results[1][2].shape)
+
+    # print(model)
+    # run_predictions_on_video(model, video_filepath, show=False)
