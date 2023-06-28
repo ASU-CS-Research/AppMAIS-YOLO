@@ -1,15 +1,24 @@
+from typing import Optional, Union
+
 import tensorflow as tf
 from tensorflow import keras
 from keras_cv.models import YOLOV8Backbone, YOLOV8Detector
 from keras_cv.models.object_detection.yolo_v8.yolo_v8_label_encoder import YOLOV8LabelEncoder
 from keras_cv.layers import MultiClassNonMaxSuppression
 from keras_cv import bounding_box
+from keras.layers import Layer
+import cv2
 
-INPUT_SHAPE = (224, 224, 3)
+
+INPUT_SHAPE = (480, 640, 3)
 BOUNDING_BOX_FORMAT = "xywh"
 
-input_data = tf.ones(shape=((1,) + INPUT_SHAPE))
+classification_loss = "binary_crossentropy"
+box_loss = 'ciou'
 
+input_data = tf.ones(shape=((1,) + INPUT_SHAPE))
+input_image = tf.ones(shape=INPUT_SHAPE).numpy()
+# cv2.imwrite('./images/test_image.png', input_image)
 num_classes = 2
 
 # pretrained backbone
@@ -20,22 +29,19 @@ label_encoder.build(input_shape=((None,) + INPUT_SHAPE))
 # Prediction decoder (responsible for transforming YOLOV8 predictions into usable bounding boxes)
 prediction_decoder = MultiClassNonMaxSuppression(
     bounding_box_format=BOUNDING_BOX_FORMAT,
-    from_logits=True,
+    from_logits=True
 )
-
 model = YOLOV8Detector(
     backbone=backbone,
     num_classes=num_classes,
     bounding_box_format=BOUNDING_BOX_FORMAT,
-    fpn_depth=1,
+    fpn_depth=2,
     label_encoder=label_encoder,
-    prediction_decoder=prediction_decoder
+    prediction_decoder=prediction_decoder,
 )
-model.build(input_shape=((None,) + INPUT_SHAPE))
-model.summary()
-outputs = model.predict(input_data)
-# outputs = model(input_data)
-# print(outputs)
+# outputs = model.predict(input_data)
+# # outputs = model(input_data)
+# # print(outputs)
 # for key in outputs.keys():
 #     print(key, outputs[key].shape)
-# print(outputs['boxes'][0][0])
+# print(outputs['boxes'][0])
