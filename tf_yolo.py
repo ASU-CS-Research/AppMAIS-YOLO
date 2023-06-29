@@ -12,6 +12,7 @@ from keras.layers import Layer
 from tqdm import tqdm
 import cv2
 from loguru import logger
+from datetime import datetime
 
 # NOTE: <environment>/lib/python3.9/site-packages/keras_cv/models/object_detection/yolo_v8/yolo_v8_detector.py
 # currently contains a bug-- we get a TypeError when training:
@@ -38,18 +39,19 @@ def load_dataset(path: str) -> Tuple[tf.Tensor, Dict[str, tf.Tensor]]:
     """
     images = []
     labels = {}
+    # Loop through each image file and find its corresponding label file
     for image_file in tqdm(os.listdir(os.path.join(path, 'images'))):
         image = cv2.imread(os.path.join(path, 'images', image_file))
-        image = image / 255.0
-        with tf.device('/cpu:0'):
-            image = tf.convert_to_tensor(image, dtype=tf.float32)
-            images.append(image)
+        # You should rescale the image by 1/255.0 to normalize it here if you do not have the rescaling layer in your
+        # model `image = image / 255.0`
+        image = tf.convert_to_tensor(image, dtype=tf.float32)
+        images.append(image)
         with open(os.path.join(path, 'labels', image_file[:-4] + '.txt')) as f:
             boxes = []
             classes = []
             for line in f.readlines():
                 class_id, x, y, w, h = line.split()
-                boxes.append([int(x), int(y), int(w), int(h)])
+                boxes.append([float(int(x)), float(int(y)), float(int(w)), float(int(h))])
                 classes.append(int(class_id))
             if 'boxes' in labels:
                 labels['boxes'].append(boxes)
@@ -59,8 +61,9 @@ def load_dataset(path: str) -> Tuple[tf.Tensor, Dict[str, tf.Tensor]]:
                 labels['classes'].append(classes)
             else:
                 labels['classes'] = [classes]
+    # Find the max number of classifications out of any image in the dataset
     max_class_list = max([len(class_list) for class_list in labels['classes']])
-    # Pad the class ids with -1 to make them all the same length, can't have jagged tensors
+    # Pad the class ids with -1 to make them all the same length (can't have jagged tensors)
     for i, class_list in enumerate(labels['classes']):
         labels['classes'][i] = np.pad(
             class_list, mode='constant', pad_width=(0, max_class_list - len(class_list)), constant_values=-1
@@ -104,26 +107,27 @@ def load_all_datasets(path: str) -> Tuple[Tuple[tf.Tensor, Dict[str, tf.Tensor]]
     return train_ds, val_ds, test_ds
 
 
-def build_model(num_classes: int, classification_loss: Optional[str] = 'binary_crossentropy', 
-                box_loss: Optional[str] = 'iou', backbone_preset: Optional[str] = "yolo_v8_xs_backbone_coco") -> \
-        tf.keras.Model:
+def build_model(num_classes: int, optimizer: tf.keras.optimizers.Optimizer, include_rescaling: Optional[bool] = False,
+                classification_loss: Optional[str] = 'binary_crossentropy', box_loss: Optional[str] = 'iou',
+                backbone_preset: Optional[str] = "yolo_v8_xs_backbone_coco", fpn_depth: Optional[int] = 2,
+                max_anchor_matches: Optional[int] = 10) -> tf.keras.Model:
     """
     Builds a YOLOV8 model with the given input shape and number of classes.
 
     Args:
         num_classes (int):
+        include_rescaling (Optional[bool]):
         classification_loss (Optional[str]):
         box_loss (Optional[str]):
+        backbone_preset (Optional[str]):
+        fpn_depth (Optional[int]):
     Returns:
         tf.keras.Model:
     """
-    input_data = tf.ones(shape=((1,) + INPUT_SHAPE))
-    input_image = tf.ones(shape=INPUT_SHAPE).numpy()
-
     # pretrained backbone
-    backbone = YOLOV8Backbone.from_preset(backbone_preset)
+    backbone = YOLOV8Backbone.from_preset(backbone_preset, include_rescaling=include_rescaling, input_shape=INPUT_SHAPE)
     # Build label encoder (responsible for transforming input boxes into trainable labels for YOLOV8Detector)
-    label_encoder = YOLOV8LabelEncoder(num_classes=num_classes, max_anchor_matches=10)
+    label_encoder = YOLOV8LabelEncoder(num_classes=num_classes, max_anchor_matches=max_anchor_matches)
     label_encoder.build(input_shape=((None,) + INPUT_SHAPE))
     # Prediction decoder (responsible for transforming YOLOV8 predictions into usable bounding boxes)
     prediction_decoder = MultiClassNonMaxSuppression(
@@ -134,7 +138,7 @@ def build_model(num_classes: int, classification_loss: Optional[str] = 'binary_c
         backbone=backbone,
         num_classes=num_classes,
         bounding_box_format=BOUNDING_BOX_FORMAT,
-        fpn_depth=2,
+        fpn_depth=fpn_depth,
         label_encoder=label_encoder,
         prediction_decoder=prediction_decoder,
     )
@@ -142,19 +146,53 @@ def build_model(num_classes: int, classification_loss: Optional[str] = 'binary_c
     model.compile(
         classification_loss=classification_loss,
         box_loss=box_loss,
-        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+        optimizer=optimizer,
         jit_compile=False
     )
     return model
 
 
 if __name__ == '__main__':
-    path = './data/'
-    (train_images, train_labels), (val_images, val_labels), (test_images, test_labels) = load_all_datasets(path)
+    INPUT_SHAPE = (480, 640, 3)
+    BOUNDING_BOX_FORMAT = 'xywh'
+
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # if gpus:
+    #     try:
+    #        tf.config.set_visible_devices(gpus[1], 'GPU')
+    #     except RuntimeError as e:
+    #         logger.error(e)
+    #         exit(1)
+
+    num_classes = 2
+    batch_size = 4
+    epochs = 100
+    checkpoint_path = os.path.join(os.path.abspath('./model_checkpoints/'), datetime.now().strftime("%Y%m%d-%H%M%S"))
+    if not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
+    logger.info(f"Saving checkpoints to {checkpoint_path}.")
+    data_path = os.path.abspath('./data/')
+    (train_images, train_labels), (val_images, val_labels), (test_images, test_labels) = load_all_datasets(data_path)
     
     # logger.debug(train_labels['boxes'].shape)
     # logger.debug(train_labels['classes'].shape)
-    model = build_model(num_classes=2, classification_loss='binary_crossentropy', box_loss='iou', 
-                        backbone_preset="yolo_v8_xs_backbone_coco")
 
-    model.fit(train_images, train_labels)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_path,
+        verbose=0,
+        save_weights_only=True,
+        save_freq='epoch'
+    )
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=5,
+        verbose=0,
+        restore_best_weights=True
+    )
+
+    model = build_model(num_classes=num_classes, optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+                        include_rescaling=True, classification_loss='binary_crossentropy', box_loss='iou',
+                        backbone_preset="yolo_v8_l_backbone_coco", fpn_depth=2, max_anchor_matches=10)
+
+    model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size, callbacks=[cp_callback],
+              validation_data=(val_images, val_labels))
