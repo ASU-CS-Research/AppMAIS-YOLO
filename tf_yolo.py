@@ -176,8 +176,6 @@ def run_model_on_video(video_filepath: str, model: tf.keras.Model, output_filepa
         output_filepath (str): Path to save the output video to.
         frame_limit (Optional[int]): The maximum number of frames to run the model on. If None, runs on all frames.
     """
-    # if not os.path.exists(output_filepath):
-    #     os.makedirs(output_filepath)
     capture = cv2.VideoCapture(video_filepath)
     if not capture.isOpened():
         raise ValueError(f"Could not open video file {video_filepath}")
@@ -187,17 +185,15 @@ def run_model_on_video(video_filepath: str, model: tf.keras.Model, output_filepa
     else:
         logger.info(f'Getting model predictions on each of the first {frame_limit} frames in {video_filepath}...')
 
-    i = 0
     while True:
         ret, frame = capture.read()
-        if frame is None or (frame_limit is not None and i >= frame_limit):
+        if frame is None or (frame_limit is not None and len(frames) >= frame_limit):
             break
         # frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         frames.append(frame)
-        i += 1
     capture.release()
     # Run the model on each frame
-    logger.info(f'Running model on each frame...')
+    logger.info(f'Running model on each of the {len(frames)} frames...')
     frames_tensor = []
     for i, frame in tqdm(enumerate(frames)):
         frames_tensor.append(tf.convert_to_tensor(frame, dtype=tf.float32))
@@ -229,6 +225,7 @@ if __name__ == '__main__':
     INPUT_SHAPE = (480, 640, 3)
     BOUNDING_BOX_FORMAT = 'xywh'
 
+    logger.info(f'Using {"GPU" if len(tf.config.list_physical_devices("GPU")) > 0 else "CPU"} to train model.')
     num_classes = 2
     batch_size = 4
     epochs = 100
@@ -262,6 +259,7 @@ if __name__ == '__main__':
     )
 
     # Define Callbacks
+    # This one creates a model checkpoint every epoch, only saving the best one out of the whole training run.
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path,
         verbose=0,
@@ -269,12 +267,14 @@ if __name__ == '__main__':
         save_best_only=True,
         save_freq='epoch'
     )
+    # This one stops training early if the validation loss stops improving.
     early_stopping_callback = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
         patience=10,
         verbose=0,
         restore_best_weights=True
     )
+    # This one logs the training run to wandb.
     wandb_callback = WandbCallback(
         monitor='val_accuracy',
         save_graph=True,
@@ -284,22 +284,23 @@ if __name__ == '__main__':
         # output_type='label',
         anonymous='allow'
     )
-    map = tfr.keras.metrics.MeanAveragePrecisionMetric()
+    # map = tfr.keras.metrics.MeanAveragePrecisionMetric()
 
-    model = build_model(num_classes=num_classes, optimizer=optimizer,
+    # Build the model with the given hyperparameters.
+    model = build_model(num_classes=num_classes, optimizer=optimizer, freeze_backbone=True,
                         include_rescaling=True, classification_loss=classification_loss, box_loss=box_loss,
-                        backbone_preset=backbone_preset, fpn_depth=fpn_depth, max_anchor_matches=max_anchor_matches,
-                        metrics=[map])
-
+                        backbone_preset=backbone_preset, fpn_depth=fpn_depth, max_anchor_matches=max_anchor_matches)
+                        # metrics=[map])
+    # Train the model with the callbacks and validation data.
     model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size,
               callbacks=[cp_callback, early_stopping_callback, wandb_callback],
               validation_data=(val_images, val_labels))
 
+    # Evaluate the model on a testing video.
     video_output_location = os.path.join(os.path.abspath('./video_output/'),
                                          datetime.now().strftime("%Y-%m-%d"))
     if not os.path.exists(video_output_location):
         os.makedirs(video_output_location)
     testing_video = './videos/AppMAIS3LB@2023-06-26@11-55-00.h264'
-    run_model_on_video(testing_video, model,
-                       os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4'),
-                       frame_limit=None)
+    video_output_filepath = os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4')
+    run_model_on_video(testing_video, model, video_output_filepath, frame_limit=None)
