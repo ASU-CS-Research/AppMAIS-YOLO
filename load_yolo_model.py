@@ -5,6 +5,7 @@ import cv2
 import os
 import numpy as np
 import ultralytics
+from pytorch_yolov8 import PytorchYOLOV8
 
 
 def get_frame_from_video(path: str, frame_ind: int):
@@ -69,15 +70,66 @@ def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[b
     video_writer.release()
 
 
+def run_predictions_on_video_pytorch(model, video_filepath: str, show: Optional[bool] = False):
+    model.eval()
+    capture = cv2.VideoCapture(video_filepath)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter('output.mp4', fourcc, 30, (480, 640))
+    while True:
+        ret, frame = capture.read()
+        if frame is None:
+            break
+        original_frame = frame.copy()
+        frame = frame / 255.0
+        frame = frame.transpose(2, 0, 1)
+        frame = frame[None, :, :, :]
+        frame_tensor = torch.from_numpy(frame)  # .unsqueeze(0)
+        # print(frame_tensor.shape)
+        frame_tensor = frame_tensor.type(torch.float32)
+        results = model.predict(frame_tensor)
+        # print(results)
+        for predictions in results:
+            # print(prediction.data.tolist())
+            prediction_list = predictions.data.tolist()
+            if not len(prediction_list) == 0:
+                for prediction in prediction_list:
+                    x1, y1, x2, y2, conf, class_id = prediction
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                    color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+                    cv2.rectangle(original_frame, (x1, y1), (x2, y2), color, 2)
+        if show:
+            cv2.imshow('frame', original_frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        # results = model(frame_tensor)
+        # print(len(results))
+        # print(results[0].shape)
+        # print(len(results[1]))
+        # print(results[1][0].shape)
+        # print(results[1][1].shape)
+        # print(results[1][2].shape)
+    pass
+
+
 if __name__ == '__main__':
     # model_path = os.path.abspath('./runs/detect/train7/weights/best.pt')
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     image_filepath = os.path.abspath('images/image_AppMAIS3LB@2023-06-26@11-55-00.png')
     # frame_ind = 120
-    model = load_model_ultralytics('/Users/williebees/Downloads/py-beemon/AppMAIS-YOLO/runs/detect/train7/weights/best.pt')
-    print(type(model))
-    print(type(model.model))
-    
+    model = load_model_ultralytics(os.path.abspath('runs/detect/train7/weights/best.pt'))
+    # print(type(model))
+    # print(type(model.model))
+    pytorch_sequential_model = model.model.__dict__["_modules"]["model"]
+    pytorch_yaml_config = model.model.__dict__["yaml"]
+    classes = model.model.__dict__["names"]
+    print(classes)
+    pytorch_yolo_from_yaml = PytorchYOLOV8(pytorch_sequential_model, pytorch_yaml_config, classes=None, conf_thresh=0.6,
+                                           iou_thresh=0.6, max_det=20)
+    # print(pytorch_yolo_from_yaml)
+    # print(type(pytorch_sequential_model))
+    # print(pytorch_sequential_model)
+    # exit()
+    run_predictions_on_video_pytorch(pytorch_yolo_from_yaml, video_filepath, show=True)
     # run_predictions_on_video_ultralytics(model, video_filepath, show=False)
     # predictions = model.predict(image_filepath)
     # print(predictions)
@@ -89,6 +141,7 @@ if __name__ == '__main__':
     # image = image.transpose(2, 0, 1)
     # image_tensor = torch.from_numpy(image).unsqueeze(0)
     # image_tensor = image_tensor.type(torch.float32)
+    # results = pytorch_yolo_from_yaml(image_tensor)
     # results = model(image_tensor)
     # print(results.shape)
     # print(f'results is a tuple, where results[0] is a torch of size: {results[0].shape}')

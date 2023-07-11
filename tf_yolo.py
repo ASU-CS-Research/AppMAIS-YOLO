@@ -254,7 +254,7 @@ if __name__ == '__main__':
     BOUNDING_BOX_FORMAT = 'xywh'
 
     logger.info(f'Using {"GPU" if len(tf.config.list_physical_devices("GPU")) > 0 else "CPU"} to train model.')
-    num_classes = 1
+    num_classes = 3
     batch_size = 16
     epochs = 200
     checkpoint_path = os.path.join(os.path.abspath('./model_checkpoints/'), datetime.now().strftime("%Y-%m-%d/%H-%M-%S/"))
