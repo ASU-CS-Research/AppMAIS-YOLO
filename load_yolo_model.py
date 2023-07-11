@@ -17,11 +17,12 @@ def get_frame_from_video(path: str, frame_ind: int):
 
 def load_model_pytorch(model_path=None, num_classes=None):
     if model_path is None:
-        model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, classes=num_classes)
+        model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, classes=num_classes, force_reload=True)
         print(model)
     else:
         model = torch.hub.load('ultralytics/yolov5', 'yolov5s', path=model_path)
     # print(model)
+    # model.model = model.model[:-1]
     model.eval()
     # model = model_and_info['model']
     # frame = get_frame_from_video(video_filepath, frame_ind)  # 120
@@ -48,6 +49,8 @@ def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[b
         if frame is None:
             break
         predictions = model.predict(frame)
+        print(predictions)
+        exit()
         results = predictions[0]
         bounding_boxes = results.boxes
         for box in bounding_boxes:
@@ -71,17 +74,32 @@ if __name__ == '__main__':
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     image_filepath = os.path.abspath('images/image_AppMAIS3LB@2023-06-26@11-55-00.png')
     # frame_ind = 120
-    model = load_model_pytorch(num_classes=2)
-    image = cv2.imread(image_filepath)
-    image = image / 255.0
-    image = image.transpose(2, 0, 1)
-    image_tensor = torch.from_numpy(image).unsqueeze(0)
-    image_tensor = image_tensor.type(torch.float32)
-    results = model(image_tensor)
-    print(results[1])
-    print(len(results))
-    print(len(results[1]))
-    print(results[1][2].shape)
+    model = load_model_ultralytics('/Users/williebees/Downloads/py-beemon/AppMAIS-YOLO/runs/detect/train7/weights/best.pt')
+    print(type(model))
+    print(type(model.model))
+    
+    # run_predictions_on_video_ultralytics(model, video_filepath, show=False)
+    # predictions = model.predict(image_filepath)
+    # print(predictions)
+    # num_boxes = len(predictions[0].boxes)
+    # print(f'num_boxes: {num_boxes}')
+    # model = load_model_pytorch(num_classes=2)
+    # image = cv2.imread(image_filepath)
+    # image = image / 255.0
+    # image = image.transpose(2, 0, 1)
+    # image_tensor = torch.from_numpy(image).unsqueeze(0)
+    # image_tensor = image_tensor.type(torch.float32)
+    # results = model(image_tensor)
+    # print(results.shape)
+    # print(f'results is a tuple, where results[0] is a torch of size: {results[0].shape}')
+    # print(f'results[1] is a list of length {len(results[1])}')
+    # print(f'results[1][0] is a torch of size: {results[1][0].shape}')
+    # print(f'results[1][1] is a torch of size: {results[1][1].shape}')
+    # print(f'results[1][2] is a torch of size: {results[1][2].shape}')
+    # print(results[1])
+    # print(len(results))
+    # print(len(results[1]))
+    # print(results[1][2].shape)
 
     # print(model)
     # run_predictions_on_video(model, video_filepath, show=False)
