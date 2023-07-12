@@ -41,17 +41,21 @@ def load_model_ultralytics(model_path):
     return model
 
 
-def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[bool] = False):
+def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[bool] = False,
+                                         output_filepath: Optional[str] = None):
     capture = cv2.VideoCapture(video_filepath)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writer = cv2.VideoWriter('output.mp4', fourcc, 30, (480, 640))
+    if not show:
+        if output_filepath is None:
+            output_filepath = f'./output_videos/'
+            os.makedirs(output_filepath, exist_ok=True)
+            output_filepath = os.path.join(output_filepath, f'ultralytics_{os.path.basename(video_filepath)[:-5]}.mp4')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(output_filepath, fourcc, 30, (640, 480))
     while True:
         ret, frame = capture.read()
         if frame is None:
             break
         predictions = model.predict(frame)
-        print(predictions)
-        exit()
         results = predictions[0]
         bounding_boxes = results.boxes
         for box in bounding_boxes:
@@ -67,14 +71,21 @@ def run_predictions_on_video_ultralytics(model, video_filepath, show: Optional[b
         else:
             video_writer.write(frame)
     capture.release()
-    video_writer.release()
+    if not show:
+        video_writer.release()
 
 
-def run_predictions_on_video_pytorch(model, video_filepath: str, show: Optional[bool] = False):
+def run_predictions_on_video_pytorch(model, video_filepath: str, show: Optional[bool] = False,
+                                     output_filepath: Optional[str] = None):
     model.eval()
     capture = cv2.VideoCapture(video_filepath)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writer = cv2.VideoWriter('output.mp4', fourcc, 30, (480, 640))
+    if not show:
+        if output_filepath is None:
+            output_filepath = f'./output_videos/'
+            os.makedirs(output_filepath, exist_ok=True)
+            output_filepath = os.path.join(output_filepath, f'pytorch_{os.path.basename(video_filepath)[:-5]}.mp4')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(output_filepath, fourcc, 30, (640, 480))
     while True:
         ret, frame = capture.read()
         if frame is None:
@@ -101,14 +112,11 @@ def run_predictions_on_video_pytorch(model, video_filepath: str, show: Optional[
             cv2.imshow('frame', original_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-        # results = model(frame_tensor)
-        # print(len(results))
-        # print(results[0].shape)
-        # print(len(results[1]))
-        # print(results[1][0].shape)
-        # print(results[1][1].shape)
-        # print(results[1][2].shape)
-    pass
+        else:
+            video_writer.write(original_frame)
+    capture.release()
+    if not show:
+        video_writer.release()
 
 
 if __name__ == '__main__':
@@ -129,8 +137,8 @@ if __name__ == '__main__':
     # print(type(pytorch_sequential_model))
     # print(pytorch_sequential_model)
     # exit()
-    run_predictions_on_video_pytorch(pytorch_yolo_from_yaml, video_filepath, show=True)
-    # run_predictions_on_video_ultralytics(model, video_filepath, show=False)
+    run_predictions_on_video_pytorch(pytorch_yolo_from_yaml, video_filepath, show=False)
+    run_predictions_on_video_ultralytics(model, video_filepath, show=False)
     # predictions = model.predict(image_filepath)
     # print(predictions)
     # num_boxes = len(predictions[0].boxes)

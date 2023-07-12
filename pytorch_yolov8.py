@@ -2,6 +2,7 @@ from torch import nn
 from ultralytics.yolo.v8.detect import DetectionPredictor
 from ultralytics.yolo.utils import ops
 
+
 class PytorchYOLOV8(nn.Module):
     def __init__(self, sequential_model, yaml_config, classes, conf_thresh=0.4, iou_thresh=0.5, max_det=20, agnostic_nms=False):
         super(PytorchYOLOV8, self).__init__()

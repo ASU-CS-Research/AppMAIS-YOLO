@@ -18,6 +18,7 @@ from datetime import datetime
 import wandb
 from wandb.keras import WandbCallback
 
+
 class YOLOV8Utils:
 
     @staticmethod
@@ -67,21 +68,26 @@ class YOLOV8Utils:
                     labels['classes'].append(classes)
                 else:
                     labels['classes'] = [classes]
-        # Find the max number of classifications out of any image in the dataset
-        max_class_list = max([len(class_list) for class_list in labels['classes']])
-        # Pad the class ids with max_class_id + 1 to make the class id arrays all the same length
-        for i, class_list in enumerate(labels['classes']):
-            labels['classes'][i] = np.pad(
-                class_list, mode='constant', pad_width=(0, max_class_list - len(class_list)),
-                constant_values=max_class_id + 1
-            )
-        # Pad the bounding boxes with zeros to make them all the same length
-        for i, box_list in enumerate(labels['boxes']):
-            labels['boxes'][i] = np.pad(
-                box_list, mode='constant', pad_width=((0, max_class_list - len(box_list)), (0, 0)), constant_values=0
-            )
-        labels['boxes'] = tf.convert_to_tensor(labels['boxes'])
-        labels['classes'] = tf.convert_to_tensor(labels['classes'])
+        # # Find the max number of classifications out of any image in the dataset
+        # max_class_list = max([len(class_list) for class_list in labels['classes']])
+        # # Pad the class ids with max_class_id + 1 to make the class id arrays all the same length
+        # for i, class_list in enumerate(labels['classes']):
+        #     labels['classes'][i] = np.pad(
+        #         class_list, mode='constant', pad_width=(0, max_class_list - len(class_list)),
+        #         constant_values=max_class_id + 1
+        #     )
+        # # Pad the bounding boxes with zeros to make them all the same length
+        # for i, box_list in enumerate(labels['boxes']):
+        #     labels['boxes'][i] = np.pad(
+        #         box_list, mode='constant', pad_width=((0, max_class_list - len(box_list)), (0, 0)), constant_values=0
+        #     )
+        # labels['boxes'] = tf.convert_to_tensor(labels['boxes'])
+        # labels['classes'] = tf.convert_to_tensor(labels['classes'])
+        # labels['boxes'] = [tf.RaggedTensor.from_uniform_row_length(boxes, uniform_row_length=4) for boxes in labels['boxes']]
+        # print(labels['boxes'][0].shape)
+        labels['boxes'] = tf.ragged.constant(labels['boxes'], ragged_rank=1)
+        # labels['boxes'] = tf.RaggedTensor.from_tensor(labels['boxes'], boxes_spec)
+        labels['classes'] = tf.ragged.constant(labels['classes'], ragged_rank=1)
         # Shuffle the dataset
         if shuffle:
             images, labels['boxes'], labels['classes'] = tf.random.shuffle(images, seed=random_seed), tf.random.shuffle(
@@ -264,7 +270,7 @@ if __name__ == '__main__':
     data_path = os.path.abspath('./data/')
     yolov8_utils = YOLOV8Utils()
     (train_images, train_labels, class_weights), (val_images, val_labels), (test_images, test_labels) = \
-        yolov8_utils.load_all_datasets(data_path, shuffle=True)
+        yolov8_utils.load_all_datasets(data_path, shuffle=False)
 
     backbone_preset = 'yolo_v8_xs_backbone_coco'
     # classification_loss = CategoricalFocalCrossentropy(alpha=class_weights, gamma=2.0)
