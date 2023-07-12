@@ -256,10 +256,11 @@ if __name__ == '__main__':
     logger.info(f'Using {"GPU" if len(tf.config.list_physical_devices("GPU")) > 0 else "CPU"} to train model.')
     num_classes = 3
     batch_size = 16
-    epochs = 200
+    epochs = 1
     checkpoint_path = os.path.join(os.path.abspath('./model_checkpoints/'), datetime.now().strftime("%Y-%m-%d/%H-%M-%S/"))
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
+    checkpoint_path = checkpoint_path + "checkpoint.ckpt"
     logger.info(f"Saving checkpoints to {checkpoint_path}.")
     data_path = os.path.abspath('./data/')
     yolov8_utils = YOLOV8Utils()
@@ -325,15 +326,20 @@ if __name__ == '__main__':
                                      max_anchor_matches=max_anchor_matches)
                         # metrics=[map])
     # Train the model with the callbacks and validation data.
-    model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size, # class_weight=class_weights,
-              callbacks=[cp_callback, early_stopping_callback, wandb_callback],
+    model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size,
+              #class_weight=class_weights,
+              callbacks=[ early_stopping_callback, wandb_callback],
               validation_data=(val_images, val_labels))
 
+    save_path = "./model_files/model.keras"
+    model.save(save_path)
+
+
     # Evaluate the model on a testing video.
-    video_output_location = os.path.join(os.path.abspath('./video_output/'),
-                                         datetime.now().strftime("%Y-%m-%d"))
-    if not os.path.exists(video_output_location):
-        os.makedirs(video_output_location)
-    testing_video = './videos/AppMAIS3LB@2023-06-26@11-55-00.h264'
-    video_output_filepath = os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4')
-    yolov8_utils.run_model_on_video(testing_video, model, video_output_filepath, frame_limit=None)
+    # video_output_location = os.path.join(os.path.abspath('./video_output/'),
+    #                                      datetime.now().strftime("%Y-%m-%d"))
+    # if not os.path.exists(video_output_location):
+    #     os.makedirs(video_output_location)
+    # testing_video = 'AppMAIS10RB@2023-06-26@11-55-00.h264'
+    # video_output_filepath = os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4')
+    # yolov8_utils.run_model_on_video(testing_video, model, video_output_filepath, frame_limit=None)
