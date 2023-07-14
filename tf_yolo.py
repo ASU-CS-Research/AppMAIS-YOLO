@@ -332,8 +332,8 @@ if __name__ == '__main__':
               validation_data=(val_images, val_labels))
 
     save_path = "./model_files/model.keras"
-    model.save(save_path)
-
+    # model.save(save_path)
+    new_model = tf.keras.models.clone_model(model)
 
     # Evaluate the model on a testing video.
     # video_output_location = os.path.join(os.path.abspath('./video_output/'),
