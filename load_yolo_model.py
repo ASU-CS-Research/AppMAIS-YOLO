@@ -6,7 +6,7 @@ import os
 import numpy as np
 import ultralytics
 import os
-from skvideo.io import FFmpegWriter
+#from skvideo.io import FFmpegWriter
 from tqdm import tqdm
 
 
@@ -60,7 +60,7 @@ def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False
             color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        frames.append(frame)
         count += 1
         if max_frames is not None and count >= max_frames:
             break
@@ -70,10 +70,10 @@ def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False
                 break
     capture.release()
     print(f'writing video with {len(frames)} frames...')
-    video_writer = FFmpegWriter(filename='output7.mp4')
+    video_writer = cv2.VideoWriter(filename = "output10.mp4", fourcc = cv2.VideoWriter.fourcc(*'mp4v'), fps = 30, frameSize = (640, 480))
     for frame in tqdm(frames):
-        video_writer.writeFrame(frame)
-    video_writer.close()
+        video_writer.write(frame)
+    video_writer.release()
     cv2.destroyAllWindows()
 
 
@@ -82,5 +82,5 @@ if __name__ == '__main__':
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     frame_ind = 120
     model = load_model_ultralytics(model_path)
-    run_predictions_on_video(model, video_filepath, show=False, max_frames=60)
+    run_predictions_on_video(model, video_filepath, show=True)
 
