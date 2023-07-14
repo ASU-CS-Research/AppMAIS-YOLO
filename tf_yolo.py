@@ -9,7 +9,7 @@ from keras_cv.layers import MultiClassNonMaxSuppression
 from sklearn.utils import compute_class_weight
 # from tensorflow.python.keras.losses import MeanSquaredError
 # from tensorflow.python.keras.losses import BinaryCrossentropy
-# from keras.losses import CategoricalFocalCrossentropy
+# from tensorflow.keras.losses import CategoricalFocalCrossentropy
 # from tensorflow.keras.losses import CategoricalCrossentropy
 from tqdm import tqdm
 import cv2
@@ -68,8 +68,8 @@ class YOLOV8Utils:
                     labels['classes'].append(classes)
                 else:
                     labels['classes'] = [classes]
-        # # Find the max number of classifications out of any image in the dataset
-        # max_class_list = max([len(class_list) for class_list in labels['classes']])
+        # Find the max number of classifications out of any image in the dataset
+        max_class_list = max([len(class_list) for class_list in labels['classes']])
         # # Pad the class ids with max_class_id + 1 to make the class id arrays all the same length
         # for i, class_list in enumerate(labels['classes']):
         #     labels['classes'][i] = np.pad(
@@ -86,8 +86,12 @@ class YOLOV8Utils:
         # labels['boxes'] = [tf.RaggedTensor.from_uniform_row_length(boxes, uniform_row_length=4) for boxes in labels['boxes']]
         # print(labels['boxes'][0].shape)
         labels['boxes'] = tf.ragged.constant(labels['boxes'], ragged_rank=1)
-        # labels['boxes'] = tf.RaggedTensor.from_tensor(labels['boxes'], boxes_spec)
+        # # labels['boxes'] = tf.RaggedTensor.from_tensor(labels['boxes'], boxes_spec)
         labels['classes'] = tf.ragged.constant(labels['classes'], ragged_rank=1)
+        # labels['boxes'] = labels['boxes'].to_dense()
+        # labels['classes'] = labels['classes'].to_dense()
+        # print(labels['boxes'].shape)
+        # print(labels['classes'].shape)
         # Shuffle the dataset
         if shuffle:
             images, labels['boxes'], labels['classes'] = tf.random.shuffle(images, seed=random_seed), tf.random.shuffle(
@@ -97,8 +101,9 @@ class YOLOV8Utils:
         class_weights = compute_class_weight(
             class_weight='balanced', classes=unique_classes, y=classes_for_weight_computation
         )
-        class_weights = {class_id: weight for class_id, weight in zip(unique_classes, class_weights)}
-        class_weights.update({max_class_id + 1: 0.0})
+        # class_weights.append(0.0)
+        # class_weights = {class_id: weight for class_id, weight in zip(unique_classes, class_weights)}
+        # class_weights.update({max_class_id + 1: 0.0})
         # class_weights = list(class_weights)
         # class_weights.append(0.0)
         return tf.convert_to_tensor(images, dtype=tf.float32), labels, class_weights
@@ -177,7 +182,7 @@ class YOLOV8Utils:
         prediction_decoder = MultiClassNonMaxSuppression(
             bounding_box_format=BOUNDING_BOX_FORMAT,
             from_logits=True,
-            confidence_threshold=0.9
+            confidence_threshold=0.6
         )
         model = YOLOV8Detector(
             backbone=backbone,
@@ -195,6 +200,8 @@ class YOLOV8Utils:
             jit_compile=False,
             metrics=metrics
         )
+        # Build the model
+        model.build(input_shape=((None,) + INPUT_SHAPE))
         return model
 
     @staticmethod
@@ -231,19 +238,21 @@ class YOLOV8Utils:
         for i, frame in tqdm(enumerate(frames)):
             frames_tensor.append(tf.convert_to_tensor(frame, dtype=tf.float32))
         frames_tensor = tf.stack(frames_tensor)
-        boxes_and_class_ids_all_frames = model.predict(frames_tensor, verbose=0)
+        boxes_and_class_ids_all_frames = model.predict(frames_tensor, verbose=2)
         boxes = boxes_and_class_ids_all_frames['boxes']
         class_ids = boxes_and_class_ids_all_frames['classes']
         confidence_scores = boxes_and_class_ids_all_frames['confidence']
         for i, (frame, boxes_for_frame, class_ids_for_frame, confidence_scores_for_frame) in \
                 tqdm(enumerate(zip(frames, boxes, class_ids, confidence_scores))):
-            for (x, y, w, h), class_id, confidence in \
+            for (x1, y1, x2, y2), class_id, confidence in \
                     zip(boxes_for_frame, class_ids_for_frame, confidence_scores_for_frame):
-                print('found something...')
-                x, y, w, h = int(x), int(y), int(w), int(h)
+                # if not (0.2 < confidence < 0.3):
+                #     continue
+                # print('found something...')
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                 color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                cv2.putText(frame, f'{class_id} {confidence:.2f}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(frame, f'{class_id} {confidence:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
             frames[i] = frame
         # Write the frames to a video file
         logger.info(f'Writing output video to {output_filepath}...')
@@ -260,9 +269,9 @@ if __name__ == '__main__':
     BOUNDING_BOX_FORMAT = 'xywh'
 
     logger.info(f'Using {"GPU" if len(tf.config.list_physical_devices("GPU")) > 0 else "CPU"} to train model.')
-    num_classes = 3
+    num_classes = 2
     batch_size = 16
-    epochs = 200
+    epochs = 50
     checkpoint_path = os.path.join(os.path.abspath('./model_checkpoints/'), datetime.now().strftime("%Y-%m-%d/%H-%M-%S/"))
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
@@ -276,7 +285,7 @@ if __name__ == '__main__':
     # classification_loss = CategoricalFocalCrossentropy(alpha=class_weights, gamma=2.0)
     # classification_loss = CategoricalCrossentropy()
     classification_loss = 'binary_crossentropy'
-    box_loss = 'iou'
+    box_loss = 'ciou'
     fpn_depth = 3
     max_anchor_matches = 10
     learning_rate = 0.0001
@@ -298,13 +307,13 @@ if __name__ == '__main__':
 
     # Define Callbacks
     # This one creates a model checkpoint every epoch, only saving the best one out of the whole training run.
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path,
-        verbose=0,
-        save_weights_only=True,
-        save_best_only=True,
-        save_freq='epoch'
-    )
+    # cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath=checkpoint_path,
+    #     verbose=0,
+    #     save_weights_only=True,
+    #     save_best_only=True,
+    #     save_freq='epoch'
+    # )
     # This one stops training early if the validation loss stops improving.
     early_stopping_callback = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
@@ -331,15 +340,35 @@ if __name__ == '__main__':
                                      max_anchor_matches=max_anchor_matches)
                         # metrics=[map])
     # Train the model with the callbacks and validation data.
-    model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size, # class_weight=class_weights,
-              callbacks=[cp_callback, early_stopping_callback, wandb_callback],
-              validation_data=(val_images, val_labels))
+    # model.fit(train_images, train_labels, epochs=epochs, batch_size=batch_size,
+    #           callbacks=[early_stopping_callback, wandb_callback],
+    #           validation_data=(val_images, val_labels))
 
-    # Evaluate the model on a testing video.
-    video_output_location = os.path.join(os.path.abspath('./video_output/'),
-                                         datetime.now().strftime("%Y-%m-%d"))
-    if not os.path.exists(video_output_location):
-        os.makedirs(video_output_location)
-    testing_video = './videos/AppMAIS3LB@2023-06-26@11-55-00.h264'
-    video_output_filepath = os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4')
-    yolov8_utils.run_model_on_video(testing_video, model, video_output_filepath, frame_limit=None)
+    # print(type(model))
+    # model.summary()
+    # new_model = tf.keras.models.clone_model(model)
+    # model_config = model.get_config()
+    # print(model_config)
+    for layer in model.layers:
+        layer.trainable = False
+    model.save_weights(checkpoint_path + 'model.h5')
+    model_json = model.to_json()
+    with open(checkpoint_path + 'model.json', 'w') as json_file:
+        json_file.write(model_json)
+
+    # def myprint(s):
+    #     with open('./model_summary_after_saving.txt','a') as f:
+    #         print(s, file=f)
+    #
+    # model.summary(print_fn=myprint)
+    # new_model = tf.keras.Model.from_config(model_config)
+    # new_model = tf.keras.models.clone_model(model)
+    # model.save(checkpoint_path + 'model.keras', save_format='keras_cv')
+    # # Evaluate the model on a testing video.
+    # video_output_location = os.path.join(os.path.abspath('./video_output/'),
+    #                                      datetime.now().strftime("%Y-%m-%d"))
+    # if not os.path.exists(video_output_location):
+    #     os.makedirs(video_output_location)
+    # testing_video = './videos/AppMAIS14L@2023-06-26@11-55-00.h264'
+    # video_output_filepath = os.path.join(video_output_location, os.path.basename(testing_video)[:-5] + '.mp4')
+    # yolov8_utils.run_model_on_video(testing_video, model, video_output_filepath, frame_limit=None)
