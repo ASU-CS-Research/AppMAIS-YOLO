@@ -25,7 +25,8 @@ for layer in model.layers:
 model.load_weights(weights_path)
 
 video_path = os.path.abspath('/home/obrienwr/AppMAIS-YOLO/videos/AppMAIS14L@2023-06-26@11-55-00.h264')
-YOLOV8Utils.run_model_on_video(video_filepath=video_path, model=model, output_video_filepath=os.path.join(
+YOLOV8Utils.run_model_on_video(
+    video_filepath=video_path, model=model, output_filepath=os.path.join(
         './', os.path.basename(video_path)[:-5] + '_output.mp4'
     )
 )
