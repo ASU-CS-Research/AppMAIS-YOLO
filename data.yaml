@@ -1,6 +1,6 @@
-train: /home/bee/bee-detection/data/train/images
-val: /home/olofintuyita/AppMAIS-YOLO/new_labeled_data
-test: /home/bee/bee-detection/data/test/images
+train: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/train
+val: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/val
+test: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/test
 
 nc: 2
 names: ['Drone', 'Worker']
