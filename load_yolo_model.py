@@ -41,7 +41,7 @@ def load_model_ultralytics(model_path):
     return model
 
 
-def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False, max_frames: Optional[int] = None):
+def run_predictions_on_video(model, video_filepath, destination_video_path, show: Optional[bool] = False, max_frames: Optional[int] = None):
     capture = cv2.VideoCapture(video_filepath)
     # fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 
@@ -70,7 +70,7 @@ def run_predictions_on_video(model, video_filepath, show: Optional[bool] = False
                 break
     capture.release()
     print(f'writing video with {len(frames)} frames...')
-    video_writer = cv2.VideoWriter(filename = "output10.mp4", fourcc = cv2.VideoWriter.fourcc(*'mp4v'), fps = 30, frameSize = (640, 480))
+    video_writer = cv2.VideoWriter(filename = destination_video_path, fourcc = cv2.VideoWriter.fourcc(*'mp4v'), fps = 30, frameSize = (640, 480))
     for frame in tqdm(frames):
         video_writer.write(frame)
     video_writer.release()

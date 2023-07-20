@@ -1,5 +1,5 @@
 train: /home/bee/bee-detection/data/train/images
-val: /home/bee/bee-detection/data/val/images
+val: /home/olofintuyita/AppMAIS-YOLO/new_labeled_data
 test: /home/bee/bee-detection/data/test/images
 
 nc: 2
