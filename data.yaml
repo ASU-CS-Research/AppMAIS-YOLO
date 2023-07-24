@@ -1,6 +1,6 @@
-train: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/train
-val: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/val
-test: /home/bee/bee-detection/data_appmais_lab/trainable_dataset/test
+train: /home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/train
+val: /home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val
+test: /home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/test
 
 nc: 2
 names: ['Drone', 'Worker']

@@ -79,7 +79,7 @@ def format_hives_directory(dest):
         os.mkdir(f"{data}/{hive}/images/")
         os.mkdir(f"{data}/{hive}/labels/")
 
-#writing the yaml files
+#writing the yaml files, DOUBLE CHECK THE PATHS
 def write_yamls(dest_path, val_path):
     for hive in hives:
         data_path = f"{dest_path}{hive}/"
@@ -120,3 +120,4 @@ def metrics_on_hives(path, val_hives = hives):
 
 if __name__ == '__main__':
     _ = ""
+    

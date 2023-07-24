@@ -25,10 +25,12 @@ logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
 date_string_format = "%Y-%m-%d"
 aggregation_pipeline = [
     {'$match': {'$or':[
-        {'HiveName': "AppMAIS13L", 'TimeStamp': {'$gt': datetime.strptime("2023-05-30", date_string_format),
-                                                 '$lt': datetime.strptime("2023-07-15", date_string_format)}},
-        {'HiveName': "AppMAIS13R", 'TimeStamp': {'$gt': datetime.strptime("2023-05-30", date_string_format),
-                                                 '$lt': datetime.strptime("2023-07-15", date_string_format)}}
+        {'HiveName': "AppMAIS11L", 'TimeStamp': {'$gt': datetime.strptime("2023-05-01", date_string_format),
+                                                 '$lt': datetime.strptime("2023-07-20", date_string_format)}},
+        {'HiveName': "AppMAIS11R", 'TimeStamp': {'$gt': datetime.strptime("2022-05-01", date_string_format),
+                                                 '$lt': datetime.strptime("2022-09-01", date_string_format)}},
+        {'HiveName': "AppMAIS11RB", 'TimeStamp': {'$gt': datetime.strptime("2023-05-01", date_string_format),
+                                                 '$lt': datetime.strptime("2023-07-20", date_string_format)}}
     ], '$expr': {
         '$and': [
             {'$gte': [{'$hour': "$TimeStamp"}, 12]},
