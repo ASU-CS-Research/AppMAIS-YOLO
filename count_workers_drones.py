@@ -38,6 +38,9 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
 
     count = 0
     frames = []
+    drone_box_count = 0
+    worker_box_count = 0
+
     while True:
         ret, frame = capture.read()
         drone_count = 0
@@ -54,20 +57,22 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             if class_id == 0:
                 drone_count += 1
+                drone_box_count += 1
             elif class_id == 1:
                 worker_count += 1
+                worker_box_count += 1
             color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
         # write the counts on the frame in the upper left corner
         cv2.putText(frame, f"Predicted drone count: {drone_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
         cv2.putText(frame, f"Predicted worker count: {worker_count}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-        drone_counts.append(drone_count)
-        worker_counts.append(worker_count)
-
-        drone_worker_ratio = np.average(np.array(drone_counts)) / (np.average(np.array(worker_counts)) + np.average(np.array(drone_counts)))
-
-        cv2.putText(frame, f"Predicted drone/worker ratio: {drone_worker_ratio}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        # drone_counts.append(drone_count)
+        # worker_counts.append(worker_count)
+        #
+        # drone_worker_ratio = np.average(np.array(drone_counts)) / (np.average(np.array(worker_counts)) + np.average(np.array(drone_counts)))
+        #
+        # cv2.putText(frame, f"Predicted drone/worker ratio: {drone_worker_ratio}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
         frames.append(frame)
         count += 1
@@ -85,12 +90,15 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
     video_writer.release()
     cv2.destroyAllWindows()
 
+    print("predicted drone ratio: ", drone_box_count / (drone_box_count + worker_box_count))
+    print("predicted worker ratio: ", worker_box_count / (drone_box_count + worker_box_count))
+
 
 if __name__ == '__main__':
     model_path = os.path.abspath('./runs/detect/train7/weights/best11s.pt')
-    video_filepath = os.path.abspath('videos/AppMAIS11R@2023-06-26@11-55-00.h264')
+    video_filepath = os.path.abspath('videos/AppMAIS11R@2022-09-01@14-45-00.mp4')
     frame_ind = 120
     model = load_model_ultralytics(model_path)
-    count_classes_from_predictions(model, video_filepath, "output14.mp4", True, 1000)
+    count_classes_from_predictions(model, video_filepath, "output18.mp4", True)
 
 
