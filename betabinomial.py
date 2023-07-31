@@ -12,12 +12,14 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray) -> L
 
     for result, label in zip(results, labels):
         bounding_boxes = result.boxes
-        n = 0
-        a = 0
-        b = 0
-        n_true = 0
-        a_true = 0
-        b_true = 0
+        # the prior distribution of alpha and beta should not be zero because that would imply that either category does
+        # not exist and therefore n should be at least 2 and alpha and beta should be at least 1
+        n = 2
+        a = 1
+        b = 1
+        n_true = 2
+        a_true = 1
+        b_true = 1
         for box in bounding_boxes:
             n += 1
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
@@ -28,9 +30,6 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray) -> L
 
         for box in label:
             if len(box) == 0:
-                n_true = 0
-                a_true = 0
-                b_true = 0
                 continue
 
             n_true += 1
@@ -114,7 +113,8 @@ if __name__ == "__main__":
 
             labels.append(image_label)
 
-    print(len(labels[1]))
+    # print(len(labels[1]))
 
     x = beta_binom_on_data(model, images, labels)
     print("x: ", x)
+    print("mean log likelihood: ", np.mean(x))
