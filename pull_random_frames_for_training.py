@@ -5,7 +5,7 @@ import numpy as np
 from loguru import logger
 from datetime import datetime
 
-num_frames_to_retrieve = 200
+num_frames_to_retrieve = 100
 frame_indices = np.random.rand(num_frames_to_retrieve) * 1794
 output_path = os.path.abspath('./input_frames')
 
@@ -23,14 +23,12 @@ logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
 # video_files_entries = video_collection.aggregate([{'$sample': {'size': num_frames_to_retrieve}}])
 # Here's an example of a hard-coded query for a specific time range for a few specific hives
 date_string_format = "%Y-%m-%d"
-aggregation_pipeline = [
+aggregation_pipeline = [ {'$match': {'HiveName': {'$in': ['AppMAIS1L', 'AppMAIS1R']}}},
     {'$match': {'$or':[
-        {'HiveName': "AppMAIS11L", 'TimeStamp': {'$gt': datetime.strptime("2023-05-01", date_string_format),
-                                                 '$lt': datetime.strptime("2023-07-20", date_string_format)}},
-        {'HiveName': "AppMAIS11R", 'TimeStamp': {'$gt': datetime.strptime("2022-05-01", date_string_format),
-                                                 '$lt': datetime.strptime("2022-09-01", date_string_format)}},
-        {'HiveName': "AppMAIS11RB", 'TimeStamp': {'$gt': datetime.strptime("2023-05-01", date_string_format),
-                                                 '$lt': datetime.strptime("2023-07-20", date_string_format)}}
+        {'TimeStamp': {'$gt': datetime.strptime("2022-05-01", date_string_format),
+                       '$lt': datetime.strptime("2022-09-10", date_string_format)}},
+        {'TimeStamp': {'$gt': datetime.strptime("2023-05-30", date_string_format),
+                       '$lt': datetime.strptime("2023-07-15", date_string_format)}}
     ], '$expr': {
         '$and': [
             {'$gte': [{'$hour': "$TimeStamp"}, 12]},

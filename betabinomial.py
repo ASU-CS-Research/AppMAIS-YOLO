@@ -96,7 +96,8 @@ if __name__ == "__main__":
     labels_filenames = os.listdir(f"{path}labels/")
     labels = []
 
-    model = ultralytics.YOLO("/home/olofintuyita/AppMAIS-YOLO/runs/detect/train13/weights/best.pt")
+    model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
+    model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
 
     images_filenames = os.listdir(f"{path}images/")
     images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images_filenames]
@@ -113,8 +114,8 @@ if __name__ == "__main__":
 
             labels.append(image_label)
 
-    # print(len(labels[1]))
 
-    x = beta_binom_on_data(model, images, labels)
-    print("x: ", x)
-    print("mean log likelihood: ", np.mean(x))
+    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels)
+    log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
+    print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
+          f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')

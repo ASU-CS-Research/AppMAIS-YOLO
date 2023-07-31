@@ -43,16 +43,18 @@ def load_model_ultralytics(model_path):
 
 def run_predictions_on_video(model, video_filepath, destination_video_path, show: Optional[bool] = False, max_frames: Optional[int] = None):
     capture = cv2.VideoCapture(video_filepath)
-    # fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-
     count = 0
     frames = []
+    edited_frames = []
     while True:
         ret, frame = capture.read()
         if frame is None:
             break
-        predictions = model.predict(frame)
-        results = predictions[0]
+        frames.append(frame)
+    print(len(frames))
+    predictions = model.predict(frames)
+
+    for frame, results in zip(frames, predictions):
         bounding_boxes = results.boxes
         for box in bounding_boxes:
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
@@ -60,7 +62,7 @@ def run_predictions_on_video(model, video_filepath, destination_video_path, show
             color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        frames.append(frame)
+        edited_frames.append(frame)
         count += 1
         if max_frames is not None and count >= max_frames:
             break
@@ -70,8 +72,10 @@ def run_predictions_on_video(model, video_filepath, destination_video_path, show
                 break
     capture.release()
     print(f'writing video with {len(frames)} frames...')
-    video_writer = cv2.VideoWriter(filename = destination_video_path, fourcc = cv2.VideoWriter.fourcc(*'mp4v'), fps = 30, frameSize = (640, 480))
-    for frame in tqdm(frames):
+    video_writer = cv2.VideoWriter(
+        filename=destination_video_path, fourcc=cv2.VideoWriter.fourcc(*'mp4v'), fps=30, frameSize=(640, 480)
+    )
+    for frame in tqdm(edited_frames):
         video_writer.write(frame)
     video_writer.release()
     cv2.destroyAllWindows()

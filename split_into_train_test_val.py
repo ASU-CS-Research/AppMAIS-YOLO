@@ -19,7 +19,7 @@ def copy_files(image_filepaths, label_filepaths, output_directory, input_directo
 
 if __name__ == '__main__':
     # Set up the input and output locations
-    input_location = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/data_by_hive/1R/')
+    input_location = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/')
     current_image_location = os.path.join(input_location, 'images')
     current_label_location = os.path.join(input_location, 'labels')
     output_location = os.path.join(input_location, 'split_dataset')
