@@ -33,6 +33,8 @@ def get_model_results(model, images, labels=None, image_filenames=None, copy_ima
 
 def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str],
                        copy_images_and_labels: Optional[bool] = False) -> List[float]:
+    #print(model.model.summary())
+
     results = get_model_results(model, images, copy_images_and_labels)
     log_likelyhoods = []
 
@@ -119,7 +121,7 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, imag
 
 if __name__ == "__main__":
     path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/"
-
+#
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
 
