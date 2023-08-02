@@ -6,11 +6,11 @@ import ultralytics
 import os
 import cv2 as cv
 
-def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray) -> List[float]:
+def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str]) -> List[float]:
     results = model(images)
     log_likelyhoods = []
 
-    for result, label in zip(results, labels):
+    for result, label, filename in zip(results, labels, image_filenames):
         bounding_boxes = result.boxes
         # the prior distribution of alpha and beta should not be zero because that would imply that either category does
         # not exist and therefore n should be at least 2 and alpha and beta should be at least 1
@@ -44,6 +44,7 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray) -> L
         a_scaled = p * n_scaled
         b_scaled = n_scaled - a_scaled
 
+        print("Image filename: ", filename)
         print("n_predicted: ", n)
         print("a_predicted: ", a)
         print("b_predicted: ", b)
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     labels = []
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
-    model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
+    # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
 
     images_filenames = os.listdir(f"{path}images/")
     images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images_filenames]
@@ -115,7 +116,8 @@ if __name__ == "__main__":
             labels.append(image_label)
 
 
-    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels)
-    log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
-    print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
-          f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
+    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames)
+    print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
+    # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
+    # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
+    #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
