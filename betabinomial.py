@@ -9,33 +9,43 @@ import cv2 as cv
 
 def get_model_results(model, images, labels=None, image_filenames=None, copy_images_and_labels=False, output_dir=None):
     results = model.predict(images)
-    # if copy_images_and_labels and output_dir is not None:
-    #     images_for_model_output = [np.copy(image) for image in images]
-    #     images_for_label_output = [np.copy(image) for image in images]
-    #     # Apply bounding boxes to images
-    #     for model_image, label_image, image_filename, result, label in (
-    #             zip(images_for_model_output, images_for_label_output, image_filenames, results, labels)):
-    #         # Plot the model output
-    #         bounding_boxes = result.boxes
-    #         for box in bounding_boxes:
-    #             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-    #             cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
-    #             cv.putText(model_image, str(conf), (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
-    #                        (255, 0, 0), 2)
-    #         # Plot the human made labels
-    #         for label in labels:
-    #             # Label is given as
-    #         # save the images
-    #         model_output_path = os.path.join(output_dir, 'model_outputs', image_filename.replace('.png', '') + "_output.png")
-    #         cv.imwrite(model_output_path, model_image)
+    if copy_images_and_labels and output_dir is not None:
+        images_for_model_output = [np.copy(image) for image in images]
+        images_for_label_output = [np.copy(image) for image in images]
+        # Apply bounding boxes to images
+        for model_image, label_image, image_filename, result, label in (
+                zip(images_for_model_output, images_for_label_output, image_filenames, results, labels)):
+            # Plot the model output
+            bounding_boxes = result.boxes
+            for box in bounding_boxes:
+                x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+                cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)),
+                             color=(255 * abs(class_id - 1), 0, 255 * class_id), thickness=2)
+                cv.putText(model_image, f'{conf * 100: .2f}', (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
+                           (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+            # Plot the human made labels
+            for box in label:
+                # box is given as class_id, center_x, center_y, w, h all relative to image width and height.
+                # We need to convert to x1, y1, x2, y2
+                class_id, center_x, center_y, w, h = box
+                x1 = int((center_x - w / 2) * label_image.shape[1])
+                y1 = int((center_y - h / 2) * label_image.shape[0])
+                x2 = int((center_x + w / 2) * label_image.shape[1])
+                y2 = int((center_y + h / 2) * label_image.shape[0])
+                cv.rectangle(label_image, (x1, y1), (x2, y2), (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+            # save the images
+            os.makedirs(os.path.join(output_dir, 'model_outputs'), exist_ok=True)
+            os.makedirs(os.path.join(output_dir, 'label_outputs'), exist_ok=True)
+            model_output_path = os.path.join(output_dir, 'model_outputs', image_filename.replace('.png', '') + ".png")
+            cv.imwrite(model_output_path, model_image)
+            label_output_path = os.path.join(output_dir, 'label_outputs', image_filename.replace('.png', '') + ".png")
+            cv.imwrite(label_output_path, label_image)
     return results
 
 
 def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str],
-                       copy_images_and_labels: Optional[bool] = False) -> List[float]:
-    #print(model.model.summary())
-
-    results = get_model_results(model, images, copy_images_and_labels)
+                       copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None) -> List[float]:
+    results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
     log_likelyhoods = []
 
     for result, label, filename in zip(results, labels, image_filenames):
@@ -121,7 +131,7 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, imag
 
 if __name__ == "__main__":
     path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/"
-#
+
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
 
@@ -142,8 +152,9 @@ if __name__ == "__main__":
 
             labels.append(image_label)
 
-
-    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames)
+    output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
+    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True,
+                                             output_dir=output_directory)
     print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
     # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
     # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
