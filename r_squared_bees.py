@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import ultralytics
 import cv2 as cv
 import os
+import betabinomial
 
 #writing a function to calculate r squared
 def r_squared(y_true, y_pred):
@@ -15,12 +16,15 @@ def r_squared(y_true, y_pred):
 
 #write a function that plots predicted vs true values
 def plot(x, y, x_label, y_label, title, suptitle, save_dest=None):
-    plt.plot(x, y, 'bo', ms=8, label=' ')
+    # add a color to each point based on the z value
+
+    plt.scatter(x, y, cmap='cool', label='data')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+    #plt.colorbar()
     plt.title(title)
     plt.suptitle(suptitle)
-    plt.legend(loc='best')
+    #plt.legend(loc='best')
     plt.show()
     if save_dest:
         plt.savefig(save_dest)
@@ -29,9 +33,9 @@ if __name__ == "__main__":
     model = ultralytics.YOLO('/home/bee/bee-detection/trained_on_11r_2022.pt')
     path = '/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/'
 
-    images = os.listdir(f"{path}images/")
-    images.sort()
-    images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images]
+    images_names = os.listdir(f"{path}images/")
+    images_names.sort()
+    images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images_names]
 
     label_files = os.listdir(f"{path}labels/")
     label_files.sort()
@@ -79,9 +83,33 @@ if __name__ == "__main__":
     r_squared_workers = r_squared(workers_true, workers_pred)
     print("r_squared_workers: ", r_squared_workers)
 
+    # make a random list of numbers to plot against
+    x = np.arange(0, len(drones_true))
+
+    formated_labels = []
+
+    for label_file in label_files:
+        #assert os.path.isfile(label_file), f"file {label_file} does not exist"
+        with open(f"{path}labels/{label_file}", "r") as f:
+            lines = f.readlines()
+            image_label = []
+            for line in lines:
+                bee_label = line.split(" ")
+                bee_label = [float(x) for x in bee_label]
+                image_label.append(bee_label)
+
+            labels.append(image_label)
+
+    log_likelihoods = betabinomial.beta_binom_on_data(images=images, labels=formated_labels, model=model, image_filenames=images_names)
+
+
+
     # plot the predicted vs true values for drones
     plot(drones_true, drones_pred, "drones_true", "drones_pred", f"drones predicted vs true (r^2 = {r_squared_drones})", "model: trained_on_11s.pt, data: AppMAIS11s_labeled_data val set",  "drones_pred_v_true.png")
 
     # plot the predicted vs true values for workers
-    plot(workers_true, workers_pred, "workers_true", "workers_pred", f"workers predicted vs true (r^2 = {r_squared_workers})", "model: trained_on_11s.pt, data: AppMAIS11s_labeled_data val set", "workers_pred_v_true.png")
+    plot(workers_true, workers_pred , "workers_true", "workers_pred",  f"workers predicted vs true (r^2 = {r_squared_workers})", "model: trained_on_11s.pt, data: AppMAIS11s_labeled_data val set", "workers_pred_v_true.png")
+
+    #numpy function that takes the absolute value of a list
+
 
