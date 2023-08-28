@@ -5,16 +5,16 @@ import numpy as np
 from loguru import logger
 from datetime import datetime
 
-num_frames_to_retrieve = 120
+num_frames_to_retrieve = 60
 frame_indices = np.random.rand(num_frames_to_retrieve) * 1794
-output_path = os.path.abspath('./frames_from_11R_2022-09-01_to_2022-11-30')
+output_path = os.path.abspath("/home/olofintuyita/Desktop/busy_frames")
 
 os.makedirs(output_path, exist_ok=True)
 
 # Connect to MongoDB
 client = pymongo.MongoClient()
 db = client.beeDB
-video_collection = db.Tags
+video_collection = db.VideoFiles
 logger.debug('Connected to database...')
 
 logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
@@ -39,17 +39,19 @@ date_string_format = "%Y-%m-%d"
 #     {'$sample': {'size': num_frames_to_retrieve}}
 # ]
 aggregation_pipeline = [
-    {"$match": {"HiveName": {'$in': ['AppMAIS11R']}}},
+    #{"$match": {"HiveName": {'$in': ['AppMAIS11R']}}},
     # {"$match": {'Tag': "Drones"}},
-    {"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-01", date_string_format),
-                    '$lt': datetime.strptime("2022-11-30", date_string_format)}}},
-{'$match': {
-     '$expr': {
-        '$and': [
-            {'$gte': [{'$hour': "$TimeStamp"}, 12]},
-            {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
-        ]
-    }}},
+    #{"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-19", date_string_format),
+     #               '$lt': datetime.strptime("2022-10-17", date_string_format)}}},
+
+    {"$match": {"Tag": {'$in': ['Bearding','Washboarding', 'Fanning']}}},
+    {'$match': {
+         '$expr': {
+            '$and': [
+                {'$gte': [{'$hour': "$TimeStamp"}, 12]},
+                {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
+            ]
+        }}},
     {"$sample": {'size': num_frames_to_retrieve}}
 ]
 video_files_entries = video_collection.aggregate(aggregation_pipeline)
@@ -74,5 +76,7 @@ for i, video_file_entry in enumerate(video_files_entries):
         logger.info(f'Writing frame {frame_indices[i]} from video {i} to disk.')
         path = os.path.join(output_path, f'video_{os.path.basename(filepath[:-5])}_frame_{i}.png')
         cv2.imwrite(path, frame)
+    else:
+        logger.warning(f'Frame {frame_indices[i]} not found in video {i}.')
 
 
