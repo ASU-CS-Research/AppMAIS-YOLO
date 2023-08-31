@@ -9,8 +9,8 @@ def copy_files(image_filepaths, label_filepaths, output_directory, input_directo
     for image_filename, label_filename in tqdm(zip(image_filepaths, label_filepaths)):
         copy_image_string = f'cp "{os.path.join(input_directory, "images", image_filename)}" ' \
                             f'"{os.path.join(output_directory, "images", image_filename)}"'
-        copy_label_string = f'cp "{os.path.join(input_directory, "labels", label_filename)}" ' \
-                            f'"{os.path.join(os.path.join(output_directory, "labels"), label_filename)}"'
+        copy_label_string = f'cp "{os.path.join(input_directory, "labels_list", label_filename)}" ' \
+                            f'"{os.path.join(os.path.join(output_directory, "labels_list"), label_filename)}"'
         # print(copy_image_string)
         # print(copy_label_string)
         os.system(copy_image_string)
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # Set up the input and output locations
     input_location = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/')
     current_image_location = os.path.join(input_location, 'images')
-    current_label_location = os.path.join(input_location, 'labels')
+    current_label_location = os.path.join(input_location, 'labels_list')
     output_location = os.path.join(input_location, 'split_dataset')
     random_seed = 42
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     output_test_location = os.path.join(output_location, 'test')
     for output_dir in [output_train_location, output_val_location, output_test_location]:
         os.makedirs(os.path.join(output_dir, 'images'), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'labels'), exist_ok=True)
+        os.makedirs(os.path.join(output_dir, 'labels_list'), exist_ok=True)
 
     # Copy the files to the output directories
     logger.info('Copying files to output directories...')

@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 img = cv.imread("/home/olofintuyita/Desktop/yolo/labeling/3rd_set_both11s/images/video_AppMAIS11R@2022-05-15@15-00-00_frame_126.png")
 
-f = open("/home/olofintuyita/Desktop/yolo/labeling/3rd_set_both11s/labels/video_AppMAIS11R@2022-05-15@15-00-00_frame_126.txt", "r").readlines()
+f = open("/home/olofintuyita/Desktop/yolo/labeling/3rd_set_both11s/labels_list/video_AppMAIS11R@2022-05-15@15-00-00_frame_126.txt", "r").readlines()
 
 for line in f:
     if line[0] == "0":
