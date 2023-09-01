@@ -1,38 +1,54 @@
 import matplotlib.pyplot as plt
 from scipy.stats import betabinom, binom, beta
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import ultralytics
 import os
 import cv2 as cv
+from sklearn.metrics import mean_squared_error
 
 
-def get_model_results(model, images, labels=None, image_filenames=None, copy_images_and_labels=False, output_dir=None):
-    results = model.predict(images)
+def get_model_results(model, images, labels=None, image_filenames=None):
+    results = model.predict(images, conf=0.64)
+    images_for_model_output = [np.copy(image) for image in images]
+    images_for_label_output = [np.copy(image) for image in images]
+    # Apply bounding boxes to images
+    for i, (model_image, label_image, image_filename, result, label) in enumerate(zip(
+            images_for_model_output, images_for_label_output, image_filenames, results, labels
+        )):
+        # Plot the model output
+        bounding_boxes = result.boxes
+        for box in bounding_boxes:
+            x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+            cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)),
+                         color=(255 * abs(class_id - 1), 0, 255 * class_id), thickness=2)
+            cv.putText(model_image, f'{conf * 100: .2f}', (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
+                       (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+        # Plot the human made labels_list
+        for box in label:
+            # box is given as class_id, center_x, center_y, w, h all relative to image width and height.
+            # We need to convert to x1, y1, x2, y2
+            class_id, center_x, center_y, w, h = box
+            x1 = int((center_x - w / 2) * label_image.shape[1])
+            y1 = int((center_y - h / 2) * label_image.shape[0])
+            x2 = int((center_x + w / 2) * label_image.shape[1])
+            y2 = int((center_y + h / 2) * label_image.shape[0])
+            cv.rectangle(label_image, (x1, y1), (x2, y2), (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+        images_for_label_output[i] = label_image
+        images_for_model_output[i] = model_image
+
+    return results, images_for_model_output, images_for_label_output
+
+
+def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[float]]], image_filenames: List[str],
+                       copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None,
+                       verbose: Optional[bool] = False) -> List[float]:
+    results, model_images, label_images = get_model_results(
+        model, images, labels, image_filenames
+    )
+    log_likelihoods = []
     if copy_images_and_labels and output_dir is not None:
-        images_for_model_output = [np.copy(image) for image in images]
-        images_for_label_output = [np.copy(image) for image in images]
-        # Apply bounding boxes to images
-        for model_image, label_image, image_filename, result, label in (
-                zip(images_for_model_output, images_for_label_output, image_filenames, results, labels)):
-            # Plot the model output
-            bounding_boxes = result.boxes
-            for box in bounding_boxes:
-                x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-                cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)),
-                             color=(255 * abs(class_id - 1), 0, 255 * class_id), thickness=2)
-                cv.putText(model_image, f'{conf * 100: .2f}', (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
-                           (255 * abs(class_id - 1), 0, 255 * class_id), 2)
-            # Plot the human made labels
-            for box in label:
-                # box is given as class_id, center_x, center_y, w, h all relative to image width and height.
-                # We need to convert to x1, y1, x2, y2
-                class_id, center_x, center_y, w, h = box
-                x1 = int((center_x - w / 2) * label_image.shape[1])
-                y1 = int((center_y - h / 2) * label_image.shape[0])
-                x2 = int((center_x + w / 2) * label_image.shape[1])
-                y2 = int((center_y + h / 2) * label_image.shape[0])
-                cv.rectangle(label_image, (x1, y1), (x2, y2), (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+        for model_image, label_image, image_filename in zip(model_images, label_images, image_filenames):
             # save the images
             os.makedirs(os.path.join(output_dir, 'model_outputs'), exist_ok=True)
             os.makedirs(os.path.join(output_dir, 'label_outputs'), exist_ok=True)
@@ -40,14 +56,10 @@ def get_model_results(model, images, labels=None, image_filenames=None, copy_ima
             cv.imwrite(model_output_path, model_image)
             label_output_path = os.path.join(output_dir, 'label_outputs', image_filename.replace('.png', '') + ".png")
             cv.imwrite(label_output_path, label_image)
-    return results
-
-
-def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str],
-                       copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None) -> List[float]:
-    results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
-    log_likelyhoods = []
-
+    total_actual_counts_worker = []
+    total_actual_counts_drone = []
+    total_predicted_counts_worker = []
+    total_predicted_counts_drone = []
     for result, label, filename in zip(results, labels, image_filenames):
         bounding_boxes = result.boxes
         # the prior distribution of alpha and beta should not be zero because that would imply that either category does
@@ -77,24 +89,22 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, imag
         # n_true = 10
         # a_true = 7
         # b_true = n_true - a_true
+
+        total_actual_counts_worker.append(a_true - 1)
+        total_actual_counts_drone.append(b_true - 1)
+        total_predicted_counts_worker.append(a - 1)
+        total_predicted_counts_drone.append(b - 1)
+
+
         p_true = a_true/n_true if n_true != 0 else 0
         n_scaled = n_true * n
         a_scaled = p * n_scaled
         b_scaled = n_scaled - a_scaled
 
-        print("Image filename: ", filename)
-        print("n_predicted: ", n)
-        print("a_predicted: ", a)
-        print("b_predicted: ", b)
-        print("p_predicted: ", p)
-        print("n_true: ", n_true)
-        print("a_true: ", a_true)
-        print("b_true: ", b_true)
-        print("p_true: ", p_true)
 
         #mean, var, skew, kurt = beta.stats(a, b, moments='mvsk')
 
-        mean, var, skew, kurt = betabinom.stats(n_scaled, a_scaled, b_scaled, moments='mvsk')
+        # mean, var, skew, kurt = betabinom.stats(n_scaled, a_scaled, b_scaled, moments='mvsk')
 
         # print("mean: ", mean)
         # print("var: ", var)
@@ -116,19 +126,62 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, imag
 
         x = n_scaled * p_true
         beta_binom_prob = betabinom.pmf(x, n_scaled, a_scaled, b_scaled)
-        # binom_prob = binom.pmf(x, n_scaled, p)
-        print("beta_binom_prob: ", beta_binom_prob)
-        # print("binom_prob: ", binom_prob)
-        # plt.show()
 
-        print("log likelihood beta binom: ", np.log(beta_binom_prob))
-        # print("log likelihood binom: ", np.log(binom_prob))
+        if verbose:
+            print("Image filename: ", filename)
+            print("n_predicted: ", n)
+            print("a_predicted: ", a)
+            print("b_predicted: ", b)
+            print("p_predicted: ", p)
+            print("n_true: ", n_true)
+            print("a_true: ", a_true)
+            print("b_true: ", b_true)
+            print("p_true: ", p_true)
+            # binom_prob = binom.pmf(x, n_scaled, p)
+            print("beta_binom_prob: ", beta_binom_prob)
+            # print("binom_prob: ", binom_prob)
+            # plt.show()
 
-        log_likelyhoods.append(np.log(beta_binom_prob))
-        print()
+            print("log likelihood beta binom: ", np.log(beta_binom_prob))
+            print()
+            # print("log likelihood binom: ", np.log(binom_prob))
 
-    return log_likelyhoods
+        log_likelihoods.append(np.log(beta_binom_prob))
 
+    sorted_likelihoods_and_images = sorted(zip(log_likelihoods, model_images, label_images, image_filenames), key=lambda x: x[0])
+    # Create a figure that displays the five images with the highest log likelihoods
+    fig, (axs1, axs2) = plt.subplots(2, 5, figsize=(20, 10))
+    for i, (log_likelihood, image, label_image, image_filename) in enumerate(sorted_likelihoods_and_images[:5]):
+        axs1[i].set_xticks([])
+        axs1[i].set_yticks([])
+        axs2[i].set_xticks([])
+        axs2[i].set_yticks([])
+        axs1[i].imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+        axs1[i].set_title(f"log likelihood: {log_likelihood}")
+        axs2[i].imshow(cv.cvtColor(label_image, cv.COLOR_BGR2RGB))
+        axs2[i].set_title(f"{image_filename.replace('video_AppMAIS', '').replace('.png', '')}")
+    plt.tight_layout()
+    # save the figure to the output directory if it exists
+    if output_dir is not None:
+        os.makedirs(output_dir, exist_ok=True)
+        plt.savefig(os.path.join(output_dir, "worst_log_likelihoods.png"))
+    # clear the figure and create a new one that displays the five images with the lowest log likelihoods
+    plt.clf()
+    fig, (axs1, axs2) = plt.subplots(2, 5, figsize=(20, 10))
+    for i, (log_likelihood, image, label_image, image_filename) in enumerate(sorted_likelihoods_and_images[-5:]):
+        axs1[i].set_xticks([])
+        axs1[i].set_yticks([])
+        axs2[i].set_xticks([])
+        axs2[i].set_yticks([])
+        axs1[i].imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+        axs1[i].set_title(f"log likelihood: {log_likelihood}")
+        axs2[i].imshow(cv.cvtColor(label_image, cv.COLOR_BGR2RGB))
+        axs2[i].set_title(f"{image_filename.replace('video_AppMAIS', '').replace('.png', '')}")
+    plt.tight_layout()
+    if output_dir is not None:
+        plt.savefig(os.path.join(output_dir, "best_log_likelihoods.png"))
+    # return the log likelihoods
+    return log_likelihoods
 def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
     results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
 
@@ -166,16 +219,28 @@ def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_file
 if __name__ == "__main__":
     path = "/home/bee/bee-detection/data_appmais_lab/stretch_test/"
 
-    model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
-    # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
+def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str], List[List[List[float]]]] :
+    """
+    Parses the images and labels from the data directory.
+    Args:
+        data_path: data_path to the data directory, assumes that the data directory has the following structure:
+        data
+        ├── images
+        │   ├── 000000.png
+        ├── labels
+        │   ├── 000000.txt
 
-    images_filenames = os.listdir(f"{path}images/")
-    images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images_filenames]
-    labels_filenames = [os.path.join(path,"labels",image_path.replace(".png",".txt"))
-                        for image_path in images_filenames]
-    labels = []
+    Returns:
+        Tuple[List[np.ndarray], List[str], List[List[List[float]]]]: a tuple containing the images, image filenames
+        and labels.
+    """
+    image_filenames = os.listdir(os.path.join(data_path, "images"))
+    images = [cv.imread(os.path.join(data_path, "images", image_path)) for image_path in image_filenames]
+    label_filenames = [os.path.join(data_path, "labels", image_path.replace(".png", ".txt"))
+                        for image_path in image_filenames]
+    label_list = []
 
-    for label_filename in labels_filenames:
+    for label_filename in label_filenames:
         with open(label_filename, "r") as f:
             lines = f.readlines()
             image_label = []
@@ -184,13 +249,27 @@ if __name__ == "__main__":
                 bee_label = [float(x) for x in bee_label]
                 image_label.append(bee_label)
 
-            labels.append(image_label)
+            label_list.append(image_label)
+    return images, image_filenames, label_list
+
+if __name__ == "__main__":
+    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/"
+
+    model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
+    # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
+
+    images, images_filenames, labels_list = parse_images_and_labels(data_path)
 
     output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
-    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True,
-                                             output_dir=None)
+    # log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels_list, images_filenames, copy_images_and_labels=False,
+    #                                          output_dir=output_directory)
+    log_likelihoods_11s, worker_rmse, drone_rmse = beta_binom_on_data(
+        model_11s, images, labels_list, images_filenames, copy_images_and_labels=False, output_dir=output_directory,
+    )
     print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
-    # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
+    sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
+    print(sorted_likelihoods)
+    # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels_list)
     # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
     #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
 

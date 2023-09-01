@@ -67,7 +67,7 @@ def sorting_by_hive( src, dest):
 #             shutil.move(f"{src_path}/images/{pic}", f"{dest_path}1{hive}/images/{pic}")
 #
 #                         # put the label file in the respective hive folder
-#             shutil.move(f"{src_path}/labels/{file_name}.txt", f"{dest_path}1{hive}/labels/{file_name}.txt")
+#             shutil.move(f"{src_path}/labels_list/{file_name}.txt", f"{dest_path}1{hive}/labels_list/{file_name}.txt")
 #                         # print(file_name)
 
 # making the folders

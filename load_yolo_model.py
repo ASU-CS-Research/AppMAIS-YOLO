@@ -8,6 +8,7 @@ import ultralytics
 import os
 #from skvideo.io import FFmpegWriter
 from tqdm import tqdm
+from sklearn.utils import gen_batches
 
 
 def load_yolo_model(model_path):
@@ -41,7 +42,9 @@ def load_model_ultralytics(model_path):
     return model
 
 
-def run_predictions_on_video(model, video_filepath, destination_video_path, show: Optional[bool] = False, max_frames: Optional[int] = None):
+def run_predictions_on_video(model, video_filepath, destination_video_path, show: Optional[bool] = False,
+                             max_frames: Optional[int] = None, batch_size: Optional[int] = 16,
+                             conf: Optional[float] = 0.25):
     capture = cv2.VideoCapture(video_filepath)
     count = 0
     frames = []
@@ -51,25 +54,47 @@ def run_predictions_on_video(model, video_filepath, destination_video_path, show
         if frame is None:
             break
         frames.append(frame)
-    print(len(frames))
-    predictions = model.predict(frames)
-
-    for frame, results in zip(frames, predictions):
-        bounding_boxes = results.boxes
-        for box in bounding_boxes:
-            x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-
-        edited_frames.append(frame)
-        count += 1
-        if max_frames is not None and count >= max_frames:
-            break
-        if show:
-            cv2.imshow('frame', frame)
-            if cv2.waitKey(30) & 0xFF == ord('q'):
+    print(f'Total frames: {len(frames)}')
+    frames = np.array(frames)
+    batches = gen_batches(len(frames), batch_size)
+    for batch in tqdm(batches):
+        predictions = model.predict(list(frames[batch]), conf=conf)
+        for frame, results in zip(frames[batch], predictions):
+            bounding_boxes = results.boxes
+            for box in bounding_boxes:
+                x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                # Write the confidence on the image
+                cv2.putText(frame, f'{conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+            edited_frames.append(frame)
+            count += 1
+            if max_frames is not None and count >= max_frames:
                 break
+            if show:
+                cv2.imshow('image', frame)
+                if cv2.waitKey(30) & 0xFF == ord('q'):
+                    break
+
+    # predictions = model.predict(frames)
+    #
+    # for frame, results in zip(frames, predictions):
+    #     bounding_boxes = results.boxes
+    #     for box in bounding_boxes:
+    #         x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+    #         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    #         color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+    #         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+    #
+    #     edited_frames.append(frame)
+    #     count += 1
+    #     if max_frames is not None and count >= max_frames:
+    #         break
+    #     if show:
+    #         cv2.imshow('image', frame)
+    #         if cv2.waitKey(30) & 0xFF == ord('q'):
+    #             break
     capture.release()
     print(f'writing video with {len(frames)} frames...')
     video_writer = cv2.VideoWriter(

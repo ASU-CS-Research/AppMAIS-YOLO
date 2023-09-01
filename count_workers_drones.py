@@ -7,27 +7,27 @@ from tqdm import tqdm
 from load_yolo_model import load_model_ultralytics
 
 
-def count_classes_from_labels(path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/train/labels/"):
+def count_classes_from_labels(path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/train/labels_list/"):
     labels = os.listdir(path)
 
     drones = 0
     workers = 0
     drone_files = []
 
-    for label in labels:
-        with open(f"{path}{label}", "r") as f:
+    for label_filename in labels:
+        with open(os.path.join(path, label_filename), "r") as f:
             lines = f.readlines()
             for line in lines:
                class_index = line[0]
                if class_index == "0":
                     drones += 1
-                    drone_files.append(label)
+                    drone_files.append(label_filename)
                elif class_index == "1":
                     workers += 1
 
     print("drones: ", drones)
     print("workers: ", workers)
-    print("drone files: ", drone_files)
+    # print("drone files: ", drone_files)
 
 
 
@@ -64,7 +64,7 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
             color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        # write the counts on the frame in the upper left corner
+        # write the counts on the image in the upper left corner
         cv2.putText(frame, f"Predicted drone count: {drone_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
         cv2.putText(frame, f"Predicted worker count: {worker_count}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
         # drone_counts.append(drone_count)
@@ -72,14 +72,14 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
         #
         # drone_worker_ratio = np.average(np.array(drone_counts)) / (np.average(np.array(worker_counts)) + np.average(np.array(drone_counts)))
         #
-        # cv2.putText(frame, f"Predicted drone/worker ratio: {drone_worker_ratio}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        # cv2.putText(image, f"Predicted drone/worker ratio: {drone_worker_ratio}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
 
         frames.append(frame)
         count += 1
         if max_frames is not None and count >= max_frames:
             break
         if show:
-            cv2.imshow('frame', frame)
+            cv2.imshow('image', frame)
             if cv2.waitKey(30) & 0xFF == ord('q'):
                 break
     capture.release()
@@ -95,10 +95,11 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
 
 
 if __name__ == '__main__':
-    model_path = os.path.abspath('./runs/detect/train7/weights/best11s.pt')
-    video_filepath = os.path.abspath('videos/AppMAIS11R@2022-09-01@14-45-00.mp4')
-    frame_ind = 120
-    model = load_model_ultralytics(model_path)
-    count_classes_from_predictions(model, video_filepath, "output18.mp4", True)
+    count_classes_from_labels('./AppMAIS11s_labeled_data/labels')
+    # model_path = os.data_path.abspath('./runs/detect/train7/weights/best11s.pt')
+    # video_filepath = os.data_path.abspath('videos/AppMAIS11R@2022-09-01@14-45-00.mp4')
+    # frame_ind = 120
+    # model = load_model_ultralytics(model_path)
+    # count_classes_from_predictions(model, video_filepath, "output18.mp4", True)
 
 
