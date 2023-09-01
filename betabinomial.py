@@ -129,8 +129,42 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: np.ndarray, imag
 
     return log_likelyhoods
 
+def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
+    results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
+
+    drones_error = 0
+    workers_error = 0
+
+    for result, label, filename in zip(results, labels, image_filenames):
+        drones = 0
+        workers = 0
+        drones_hat = 0
+        workers_hat = 0
+
+        bounding_boxes = result.boxes
+
+        for box in bounding_boxes:
+            _, _, _, _, _, class_id = box.data.tolist()[0]
+            workers_hat += 1 if class_id == 1 else 0
+            drones_hat += 1 if class_id == 0 else 0
+
+        for box in label:
+            if len(box) == 0:
+                continue
+
+            workers += 1 if box[0] == 1 else 0
+            drones += 1 if box[0] == 0 else 0
+
+        drones_error += (drones - drones_hat) ** 2
+        workers_error += (workers - workers_hat) ** 2
+
+    drones_rmse = (drones_error / len(labels)) ** 0.5
+    workers_rmse = (workers_error / len(labels)) ** 0.5
+
+    return drones_rmse, workers_rmse
+
 if __name__ == "__main__":
-    path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/"
+    path = "/home/bee/bee-detection/data_appmais_lab/stretch_test/"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11s.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_1s.pt")
@@ -154,8 +188,11 @@ if __name__ == "__main__":
 
     output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
     log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True,
-                                             output_dir=output_directory)
+                                             output_dir=None)
     print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
     # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels)
     # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
     #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
+
+    drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True, output_dir = None)
+    print(f"drone rmse: {drones_rmse_11s}, \nworker rmse: {workers_rmse_11s}")
