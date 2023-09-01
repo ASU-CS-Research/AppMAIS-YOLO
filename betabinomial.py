@@ -42,7 +42,7 @@ def get_model_results(model, images, labels=None, image_filenames=None):
 
 def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[float]]], image_filenames: List[str],
                        copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None,
-                       return_rmse: Optional[bool] = False, verbose: Optional[bool] = False) -> List[float]:
+                       verbose: Optional[bool] = False) -> List[float]:
     results, model_images, label_images = get_model_results(
         model, images, labels, image_filenames
     )
@@ -181,10 +181,6 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[f
     if output_dir is not None:
         plt.savefig(os.path.join(output_dir, "best_log_likelihoods.png"))
     # return the log likelihoods
-    if return_rmse:
-        worker_rmse = mean_squared_error(total_actual_counts_worker, total_predicted_counts_worker, squared=False)
-        drone_rmse = mean_squared_error(total_actual_counts_drone, total_predicted_counts_drone, squared=False)
-        return log_likelihoods, worker_rmse, drone_rmse
     return log_likelihoods
 
 def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str], List[List[List[float]]]] :
@@ -233,7 +229,6 @@ if __name__ == "__main__":
     #                                          output_dir=output_directory)
     log_likelihoods_11s, worker_rmse, drone_rmse = beta_binom_on_data(
         model_11s, images, labels_list, images_filenames, copy_images_and_labels=False, output_dir=output_directory,
-        return_rmse=True
     )
     print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
     sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
