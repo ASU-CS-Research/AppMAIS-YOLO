@@ -7,14 +7,14 @@ from datetime import datetime
 
 num_frames_to_retrieve = 60
 frame_indices = np.random.rand(num_frames_to_retrieve) * 1794
-output_path = os.path.abspath("/home/olofintuyita/Desktop/busy_frames")
+output_path = os.path.abspath("/home/olofintuyita/Desktop/busy_frames_hive_1s")
 
 os.makedirs(output_path, exist_ok=True)
 
 # Connect to MongoDB
 client = pymongo.MongoClient()
 db = client.beeDB
-video_collection = db.VideoFiles
+video_collection = db.Tags
 logger.debug('Connected to database...')
 
 logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
@@ -44,17 +44,20 @@ aggregation_pipeline = [
     #{"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-19", date_string_format),
      #               '$lt': datetime.strptime("2022-10-17", date_string_format)}}},
 
-    {"$match": {"Tag": {'$in': ['Bearding','Washboarding', 'Fanning']}}},
+    {"$match": {"Tag": {'$in': ['Bearding', 'Washboarding', 'Fanning', 'Swarm']}}},
+    {"$match": {"HiveName": {'$in': ['AppMAIS1R', 'AppMAIS1L', 'AppMAIS1RB', 'AppMAIS1LB']}}},
     {'$match': {
          '$expr': {
             '$and': [
-                {'$gte': [{'$hour': "$TimeStamp"}, 12]},
-                {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
+                {'$gte': [{'$hour': "$UTCDate"}, 12]},
+                {'$lt':  [{'$hour': "$UTCDate"}, 16]}
             ]
         }}},
     {"$sample": {'size': num_frames_to_retrieve}}
 ]
 video_files_entries = video_collection.aggregate(aggregation_pipeline)
+
+logger.info(f'Cursor is alive: {video_files_entries.alive}')
 
 # Iterate through video files
 for i, video_file_entry in enumerate(video_files_entries):
