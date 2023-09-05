@@ -15,9 +15,9 @@ def r_squared(y_true, y_pred):
     return 1 - (ss_res / ss_tot)
 
 #write a function that plots predicted vs true values
-def plot(x, y, x_label, y_label, title, suptitle, save_dest=None):
+def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, show=False):
+    plt.clf()
     # add a color to each point based on the z value
-
     plt.scatter(x, y, cmap='cool', label='data')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -25,25 +25,30 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None):
     plt.title(title)
     plt.suptitle(suptitle)
     #plt.legend(loc='best')
-    plt.show()
+    plt.tight_layout()
     if save_dest:
         plt.savefig(save_dest)
+    if show:
+        plt.show()
 
 if __name__ == "__main__":
-    model = ultralytics.YOLO('/home/bee/bee-detection/trained_on_11r_2022.pt')
-    path = '/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/'
-
-    images_names = os.listdir(f"{path}images/")
+    model_path = os.path.abspath("/home/bee/bee-detection/trained_on_11r_2022.pt")
+    model = ultralytics.YOLO(model_path)
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
+    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test')
+    images_names = os.listdir(os.path.join(data_path, "images"))
     images_names.sort()
-    images = [cv.imread(os.path.join(path,"images",image_path)) for image_path in images_names]
+    images = [cv.imread(os.path.join(data_path, "images", image_path)) for image_path in images_names]
 
-    label_files = os.listdir(f"{path}labels/")
+    label_files = os.listdir(os.path.join(data_path, "labels"))
     label_files.sort()
 
-    labels = [] # this is in the format [[drones, workers], [drones, workers], ...]
+    labels = []  # this is in the format [[drones, workers], [drones, workers], ...]
 
     for label_file in label_files:
-        with open(os.path.join(path,"labels",label_file), "r") as f:
+        if label_file == "classes.txt":
+            continue
+        with open(os.path.join(data_path, "labels", label_file), "r") as f:
             lines = f.readlines()
             label = [0,0]
             for line in lines:
@@ -57,7 +62,7 @@ if __name__ == "__main__":
 
     # get the number of drones and workers predicted
 
-    pred = [] # this is in the format [[drones, workers], [drones, workers], ...]
+    pred = []  # this is in the format [[drones, workers], [drones, workers], ...]
 
     for prediction in predictions:
         boxes = prediction.boxes
@@ -89,8 +94,10 @@ if __name__ == "__main__":
     formated_labels = []
 
     for label_file in label_files:
-        #assert os.path.isfile(label_file), f"file {label_file} does not exist"
-        with open(f"{path}labels/{label_file}", "r") as f:
+        #assert os.data_path.isfile(label_file), f"file {label_file} does not exist"
+        if label_file == "classes.txt":
+            continue
+        with open(os.path.join(data_path, "labels", label_file), "r") as f:
             lines = f.readlines()
             image_label = []
             for line in lines:
@@ -102,13 +109,23 @@ if __name__ == "__main__":
 
     log_likelihoods = betabinomial.beta_binom_on_data(images=images, labels=formated_labels, model=model, image_filenames=images_names)
 
-
+    # plot the predicted vs true values for drones
+    plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
+         f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
+         f"model: {os.path.basename(model_path)}, data: Swarm videos",
+         "drones_pred_v_true.png", show=True)
 
     # plot the predicted vs true values for drones
-    plot(drones_true, drones_pred, "drones_true", "drones_pred", f"drones predicted vs true (r^2 = {r_squared_drones})", "model: trained_on_11s.pt, data: AppMAIS11s_labeled_data val set",  "drones_pred_v_true.png")
+    plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
+         f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
+         f"model: {os.path.basename(model_path)}, data: Swarm videos",
+         "drones_pred_v_true.png", show=True)
 
     # plot the predicted vs true values for workers
-    plot(workers_true, workers_pred , "workers_true", "workers_pred",  f"workers predicted vs true (r^2 = {r_squared_workers})", "model: trained_on_11s.pt, data: AppMAIS11s_labeled_data val set", "workers_pred_v_true.png")
+    plot(workers_true, workers_pred , "True Worker Count", "Predicted Worker Count",
+         f"Worker Count Predicted against True (r^2 = {r_squared_workers})",
+         f"model: {os.path.basename(model_path)}, data: Swarm videos",
+         "workers_pred_v_true.png", show=True)
 
     #numpy function that takes the absolute value of a list
 
