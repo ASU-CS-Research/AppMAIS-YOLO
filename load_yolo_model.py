@@ -113,3 +113,4 @@ if __name__ == '__main__':
     model = load_model_ultralytics(model_path)
     run_predictions_on_video(model, video_filepath, show=True)
 
+    # print(model.info())
