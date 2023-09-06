@@ -39,6 +39,23 @@ def get_model_results(model, images, labels=None, image_filenames=None):
     return results, images_for_model_output, images_for_label_output
 
 
+def get_caste_count_labels_results(label, result):
+    a_true = 0
+    b_true = 0
+    for box in label:
+        if len(box) == 0:
+            continue
+
+        a_true += 1 if box[0] == 1 else 0
+        b_true += 1 if box[0] == 0 else 0
+    a_pred = 0
+    b_pred = 0
+    for box in result.boxes:
+        _, _, _, _, _, class_id = box.data.tolist()[0]
+        a_pred += 1 if class_id == 1 else 0
+        b_pred += 1 if class_id == 0 else 0
+    return (a_true, b_true), (a_pred, b_pred)
+
 def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[float]]], image_filenames: List[str],
                        copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None,
                        verbose: Optional[bool] = False) -> List[float]:
@@ -57,30 +74,37 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[f
             cv.imwrite(label_output_path, label_image)
 
     for result, label, filename in zip(results, labels, image_filenames):
-        bounding_boxes = result.boxes
+        # bounding_boxes = result.boxes
+        (a_true, b_true), (a, b) = get_caste_count_labels_results(label, result)
         # the prior distribution of alpha and beta should not be zero because that would imply that either category does
         # not exist and therefore n should be at least 2 and alpha and beta should be at least 1
-        n = 2
-        a = 1
-        b = 1
-        n_true = 2
-        a_true = 1
-        b_true = 1
-        for box in bounding_boxes:
-            n += 1
-            x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-            a += 1 if class_id == 1 else 0
-            b += 1 if class_id == 0 else 0
+        a_true += 1
+        b_true += 1
+        n_true = a_true + b_true
+        a += 1
+        b += 1
+        n = a + b
+        # n = 2
+        # a = 1
+        # b = 1
+        # n_true = 2
+        # a_true = 1
+        # b_true = 1
+        # for box in bounding_boxes:
+        #     n += 1
+        #     x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+        #     a += 1 if class_id == 1 else 0
+        #     b += 1 if class_id == 0 else 0
 
         p = float(a/n) if n != 0 else 0
 
-        for box in label:
-            if len(box) == 0:
-                continue
-
-            n_true += 1
-            a_true += 1 if box[0] == 1 else 0
-            b_true += 1 if box[0] == 0 else 0
+        # for box in label:
+        #     if len(box) == 0:
+        #         continue
+        #
+        #     n_true += 1
+        #     a_true += 1 if box[0] == 1 else 0
+        #     b_true += 1 if box[0] == 0 else 0
 
         # n_true = 10
         # a_true = 7
@@ -115,7 +139,7 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[f
 
         x = n_scaled * p_true
         beta_binom_prob = betabinom.pmf(x, n_scaled, a_scaled, b_scaled)
-
+        log_likelihoods.append(np.log(beta_binom_prob))
         if verbose:
             print("Image filename: ", filename)
             print("n_predicted: ", n)
@@ -135,10 +159,42 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[f
             print()
             # print("log likelihood binom: ", np.log(binom_prob))
 
-    return log_likelyhoods
+    sorted_likelihoods_and_images = sorted(zip(log_likelihoods, model_images, label_images, image_filenames),
+                                           key=lambda x: x[0])
+    # Create a figure that displays the five images with the highest log likelihoods
+    fig, (axs1, axs2) = plt.subplots(2, 5, figsize=(20, 10))
+    for i, (log_likelihood, image, label_image, image_filename) in enumerate(sorted_likelihoods_and_images[:5]):
+        axs1[i].set_xticks([])
+        axs1[i].set_yticks([])
+        axs2[i].set_xticks([])
+        axs2[i].set_yticks([])
+        axs1[i].imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+        axs1[i].set_title(f"log likelihood: {log_likelihood}")
+        axs2[i].imshow(cv.cvtColor(label_image, cv.COLOR_BGR2RGB))
+        axs2[i].set_title(f"{image_filename.replace('video_AppMAIS', '').replace('.png', '')}")
+    plt.tight_layout()
+    # save the figure to the output directory if it exists
+    if output_dir is not None:
+        os.makedirs(output_dir, exist_ok=True)
+        plt.savefig(os.path.join(output_dir, "worst_log_likelihoods.png"))
+    # clear the figure and create a new one that displays the five images with the lowest log likelihoods
+    plt.clf()
+    fig, (axs1, axs2) = plt.subplots(2, 5, figsize=(20, 10))
+    for i, (log_likelihood, image, label_image, image_filename) in enumerate(sorted_likelihoods_and_images[-5:]):
+        axs1[i].set_xticks([])
+        axs1[i].set_yticks([])
+        axs2[i].set_xticks([])
+        axs2[i].set_yticks([])
+        axs1[i].imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+        axs1[i].set_title(f"log likelihood: {log_likelihood}")
+        axs2[i].imshow(cv.cvtColor(label_image, cv.COLOR_BGR2RGB))
+        axs2[i].set_title(f"{image_filename.replace('video_AppMAIS', '').replace('.png', '')}")
+    plt.tight_layout()
 
-def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
-    results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
+    return log_likelihoods
+
+def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str]):
+    results = get_model_results(model, images, labels, image_filenames)[0]
 
     drones_error = 0
     workers_error = 0
@@ -206,7 +262,7 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
     return images, image_filenames, label_list
 
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/"
+    data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -214,8 +270,9 @@ if __name__ == "__main__":
     images, images_filenames, labels_list = parse_images_and_labels(data_path)
 
     output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
-    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True,
-                                             output_dir=None)
+    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels_list, images_filenames,
+                                             copy_images_and_labels=False,
+                                             output_dir=output_directory)
     print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
     sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
     print(sorted_likelihoods)
@@ -223,5 +280,5 @@ if __name__ == "__main__":
     # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
     #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
 
-    drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True, output_dir = None)
+    drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels_list, images_filenames)
     print(f"drone rmse: {drones_rmse_11s}, \nworker rmse: {workers_rmse_11s}")

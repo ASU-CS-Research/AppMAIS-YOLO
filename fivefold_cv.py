@@ -3,7 +3,8 @@ from typing import List
 import numpy as np
 import ultralytics
 import os
-from betabinomial import beta_binom_on_data, parse_images_and_labels
+from betabinomial import beta_binom_on_data, parse_images_and_labels, rmse_on_data, get_caste_count_labels_results
+from r_squared_bees import plot, r_squared
 
 import natsort
 from sklearn.model_selection import KFold
@@ -78,24 +79,43 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
     output_directory = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(model_paths[0]))),
                                     'log_likelihoods_per_fold')
     os.makedirs(output_directory, exist_ok=True)
+    workers_true_predicted = []
+    drones_true_predicted = []
     for i, (model_path, val_set_path) in enumerate(zip(model_paths, val_set_paths)):
         fold_dirname = os.path.basename(os.path.dirname(model_path))
         model = ultralytics.YOLO(model_path)
         images, image_filenames, labels = parse_images_and_labels(val_set_path)
-        log_likelihoods, worker_rmse, drone_rmse = beta_binom_on_data(
+        predictions = model.predict(images, conf=0.64)
+        for results, label in zip(predictions, labels):
+            (workers_true, drones_true), (workers_predicted, drones_predicted) = \
+                get_caste_count_labels_results(label, results)
+            workers_true_predicted.append((workers_true, workers_predicted))
+            drones_true_predicted.append((drones_true, drones_predicted))
+        log_likelihoods = beta_binom_on_data(
             model, images, labels, image_filenames, copy_images_and_labels=False,
-            output_dir=os.path.join(output_directory, fold_dirname),
-            return_rmse=True
+            output_dir=os.path.join(output_directory, fold_dirname)
         )
+        worker_rmse, drone_rmse = rmse_on_data(model, images, labels, image_filenames)
         mean_log_likelihoods.append(np.mean(log_likelihoods))
         worker_rmse_metrics.append(worker_rmse)
         drone_rmse_metrics.append(drone_rmse)
         print(f'{fold_dirname} mean log likelihood: {mean_log_likelihoods[-1]}')
         print(f'worker rmse: {worker_rmse_metrics[-1]}')
         print(f'drone rmse: {drone_rmse_metrics[-1]}\n')
+    workers_true, workers_predicted = zip(*workers_true_predicted)
+    drones_true, drones_predicted = zip(*drones_true_predicted)
+    plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
+         "Worker Count Predicted against True", "model: 5-fold cv",
+         save_dest="workers_pred_v_true_cv.png", show=True)
+    plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
+         "Worker Count Predicted against True",
+         f"model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
+         save_dest="workers_pred_v_true_cv.png", show=True)
+    plot(drones_true, drones_predicted, "True Drone Count", "Predicted Drone Count",
+         "Drone Count Predicted against True",
+         f"model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
+         save_dest="drones_pred_v_true_cv.png", show=True)
     return mean_log_likelihoods
-
-
 
 
 if __name__ == '__main__':

@@ -35,7 +35,8 @@ if __name__ == "__main__":
     model_path = os.path.abspath("/home/bee/bee-detection/trained_on_11r_2022.pt")
     model = ultralytics.YOLO(model_path)
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
-    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test')
+    data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test')
     images_names = os.listdir(os.path.join(data_path, "images"))
     images_names.sort()
     images = [cv.imread(os.path.join(data_path, "images", image_path)) for image_path in images_names]
@@ -118,13 +119,13 @@ if __name__ == "__main__":
     # plot the predicted vs true values for drones
     plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
          f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
-         f"model: {os.path.basename(model_path)}, data: Swarm videos",
+         f"model: {os.path.basename(model_path)}, data: 1s val set",
          "drones_pred_v_true.png", show=True)
 
     # plot the predicted vs true values for workers
     plot(workers_true, workers_pred , "True Worker Count", "Predicted Worker Count",
          f"Worker Count Predicted against True (r^2 = {r_squared_workers})",
-         f"model: {os.path.basename(model_path)}, data: Swarm videos",
+         f"model: {os.path.basename(model_path)}, data: 1s val set",
          "workers_pred_v_true.png", show=True)
 
     #numpy function that takes the absolute value of a list
