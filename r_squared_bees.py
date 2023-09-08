@@ -24,6 +24,8 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None):
     #plt.colorbar()
     plt.title(title)
     plt.suptitle(suptitle)
+    m, b = np.polyfit(x, y, 1)
+    plt.plot(x, m*x+b, color='red')
     #plt.legend(loc='best')
     plt.show()
     if save_dest:

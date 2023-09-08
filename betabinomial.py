@@ -256,9 +256,9 @@ def count_error_on_data(model, images: List[np.ndarray], labels: np.ndarray, ima
     results, _, _ = get_model_results(model, images, labels, image_filenames) # copy_images_and_labels, output_dir)
 
     drones_ce = []
-    drones_n = []
+    drones_ce_n = []
     workers_ce = []
-    workers_n = []
+    workers_ce_n = []
 
     for result, label, filename in zip(results, labels, image_filenames):
         drones = 1
@@ -281,18 +281,27 @@ def count_error_on_data(model, images: List[np.ndarray], labels: np.ndarray, ima
             drones += 1 if box[0] == 0 else 0
 
         drones_ce.append(abs(drones - drones_hat))
-        drones_n.append(drones)
+        drones_ce_n.append(drones)
         workers_ce.append(abs(workers - workers_hat))
-        workers_n.append(workers)
+        workers_ce_n.append(workers)
 
-    return drones_ce, drones_n, workers_ce, workers_n
+    return drones_ce, drones_ce_n, workers_ce, workers_ce_n
 
-def graphing(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
+def graph(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
     plt.plot(data[3], data[2], 'ro', ms=8, label=key[0])
     plt.plot(data[1], data[0], 'bo', ms=8, label=key[1])
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    # m, b = np.polyfit(data[3], data[2], 1)
+    # plt.plot(data[3], np.multiply(int(m) , data[3]) + b)
+
+    # to figure out how the line might work for log fit and exponential fit
+    # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
+    # or https://stackoverflow.com/questions/3433486/how-to-do-exponential-and-logarithmic-curve-fitting-in-python-i-found-only-poly
+    # for higher degree polynomial fits, increase the third parameter of np.polyfit and put more
+    # variables to receive the output of np.polyfit
+
     filename = title.replace(" ", "_")
     plt.savefig(os.path.join(output_dir, filename + '.png'))
     # plt.clf()
@@ -363,6 +372,6 @@ if __name__ == "__main__":
 
     print(data2)
 
-    graphing(data, "Mean Absolute Error on 11s", "Number of bees in a class", "Error", ["Drones", "Workers"], output_directory)
-    graphing(data2, "Count Error on 11s", "Number of bees in a class", "Count Error", ["Drones", "Workers"], output_directory)
+    graph(data, "MAE on 11s", "Number of bees", "Error", ["Drones", "Workers"], output_directory)
+    graph(data2, "Count Error on 11s", "Number of bees in a class", "Count Error", ["Drones", "Workers"], output_directory)
 
