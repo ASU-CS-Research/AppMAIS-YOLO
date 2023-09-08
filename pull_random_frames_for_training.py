@@ -5,9 +5,9 @@ import numpy as np
 from loguru import logger
 from datetime import datetime
 
-num_frames_to_retrieve = 60
+num_frames_to_retrieve = 25
 frame_indices = np.random.rand(num_frames_to_retrieve) * 1794
-output_path = os.path.abspath("/home/olofintuyita/Desktop/busy_frames_hive_1s")
+output_path = os.path.abspath("/home/olofintuyita/Desktop/unlabeled_frames/more_11s_2022")
 
 os.makedirs(output_path, exist_ok=True)
 
@@ -41,11 +41,11 @@ date_string_format = "%Y-%m-%d"
 aggregation_pipeline = [
     #{"$match": {"HiveName": {'$in': ['AppMAIS11R']}}},
     # {"$match": {'Tag': "Drones"}},
-    #{"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-19", date_string_format),
-     #               '$lt': datetime.strptime("2022-10-17", date_string_format)}}},
+    {"$match": {'UTCDate': {'$gt': datetime.strptime("2022-09-19", date_string_format),
+                   '$lt': datetime.strptime("2022-10-17", date_string_format)}}},
 
-    {"$match": {"Tag": {'$in': ['Bearding', 'Washboarding', 'Fanning', 'Swarm']}}},
-    {"$match": {"HiveName": {'$in': ['AppMAIS1R', 'AppMAIS1L', 'AppMAIS1RB', 'AppMAIS1LB']}}},
+    # {"$match": {"Tag": {'$in': ['Bearding', 'Washboarding', 'Fanning', 'Swarm']}}},
+    {"$match": {"HiveName": {'$in': ['AppMAIS11R', 'AppMAIS11L', 'AppMAIS11RB', 'AppMAIS11LB']}}},
     {'$match': {
          '$expr': {
             '$and': [
@@ -53,6 +53,8 @@ aggregation_pipeline = [
                 {'$lt':  [{'$hour': "$UTCDate"}, 16]}
             ]
         }}},
+    # {"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-01", date_string_format),
+    #                 '$lt': datetime.strptime("2022-11-30", date_string_format)}}},
     {"$sample": {'size': num_frames_to_retrieve}}
 ]
 video_files_entries = video_collection.aggregate(aggregation_pipeline)

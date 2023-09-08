@@ -183,7 +183,7 @@ def beta_binom_on_data(model, images: List[np.ndarray], labels: List[List[List[f
     # return the log likelihoods
     return log_likelihoods
 def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
-    results = get_model_results(model, images, labels, image_filenames, copy_images_and_labels, output_dir)
+    results, _, _ = get_model_results(model, images, labels, image_filenames) # copy_images_and_labels, output_dir)
 
     drones_error = 0
     workers_error = 0
@@ -216,8 +216,86 @@ def rmse_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_file
 
     return drones_rmse, workers_rmse
 
-if __name__ == "__main__":
-    path = "/home/bee/bee-detection/data_appmais_lab/stretch_test/"
+
+def mae_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
+    results, _, _ = get_model_results(model, images, labels, image_filenames) # copy_images_and_labels, output_dir)
+
+    drones_mae = []
+    drones_n = []
+    workers_mae = []
+    workers_n = []
+
+    for result, label, filename in zip(results, labels, image_filenames):
+        drones = 1
+        workers = 1
+        drones_hat = 1
+        workers_hat = 1
+
+        bounding_boxes = result.boxes
+
+        for box in bounding_boxes:
+            _, _, _, _, _, class_id = box.data.tolist()[0]
+            workers_hat += 1 if class_id == 1 else 0
+            drones_hat += 1 if class_id == 0 else 0
+
+        for box in label:
+            if len(box) == 0:
+                continue
+
+            workers += 1 if box[0] == 1 else 0
+            drones += 1 if box[0] == 0 else 0
+
+        drones_mae.append(abs(drones - drones_hat)/drones)
+        drones_n.append(drones)
+        workers_mae.append(abs(workers - workers_hat)/workers)
+        workers_n.append(workers)
+
+    return drones_mae, drones_n, workers_mae, workers_n
+
+def count_error_on_data(model, images: List[np.ndarray], labels: np.ndarray, image_filenames: List[str], copy_images_and_labels: Optional[bool] = False, output_dir: Optional[str] = None):
+    results, _, _ = get_model_results(model, images, labels, image_filenames) # copy_images_and_labels, output_dir)
+
+    drones_ce = []
+    drones_n = []
+    workers_ce = []
+    workers_n = []
+
+    for result, label, filename in zip(results, labels, image_filenames):
+        drones = 1
+        workers = 1
+        drones_hat = 1
+        workers_hat = 1
+
+        bounding_boxes = result.boxes
+
+        for box in bounding_boxes:
+            _, _, _, _, _, class_id = box.data.tolist()[0]
+            workers_hat += 1 if class_id == 1 else 0
+            drones_hat += 1 if class_id == 0 else 0
+
+        for box in label:
+            if len(box) == 0:
+                continue
+
+            workers += 1 if box[0] == 1 else 0
+            drones += 1 if box[0] == 0 else 0
+
+        drones_ce.append(abs(drones - drones_hat))
+        drones_n.append(drones)
+        workers_ce.append(abs(workers - workers_hat))
+        workers_n.append(workers)
+
+    return drones_ce, drones_n, workers_ce, workers_n
+
+def graphing(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
+    plt.plot(data[3], data[2], 'ro', ms=8, label=key[0])
+    plt.plot(data[1], data[0], 'bo', ms=8, label=key[1])
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    filename = title.replace(" ", "_")
+    plt.savefig(os.path.join(output_dir, filename + '.png'))
+    # plt.clf()
 
 def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str], List[List[List[float]]]] :
     """
@@ -253,7 +331,7 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
     return images, image_filenames, label_list
 
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/"
+    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -263,15 +341,28 @@ if __name__ == "__main__":
     output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
     # log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels_list, images_filenames, copy_images_and_labels=False,
     #                                          output_dir=output_directory)
-    log_likelihoods_11s, worker_rmse, drone_rmse = beta_binom_on_data(
-        model_11s, images, labels_list, images_filenames, copy_images_and_labels=False, output_dir=output_directory,
-    )
-    print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
-    sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
-    print(sorted_likelihoods)
-    # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels_list)
-    # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
-    #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
+    # log_likelihoods_11s = beta_binom_on_data(
+    #     model_11s, images, labels_list, images_filenames, copy_images_and_labels=False, output_dir=output_directory,
+    # )
+    # print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
+    # sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
+    # print(sorted_likelihoods)
+    # # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels_list)
+    # # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
+    # #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
+    #
+    # drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels_list, images_filenames, copy_images_and_labels=True, output_dir = None)
+    # print(f"drone rmse: {drones_rmse_11s}, \nworker rmse: {workers_rmse_11s}")
 
-    drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels, images_filenames, copy_images_and_labels=True, output_dir = None)
-    print(f"drone rmse: {drones_rmse_11s}, \nworker rmse: {workers_rmse_11s}")
+    drones_mae_11s, drones_n_11s, workers_mae_11s, workers_n_11s = mae_on_data(model_11s, images, labels_list, images_filenames, copy_images_and_labels=True, output_dir = None)
+
+    drones_ce_11s, drones_cen_11s, workers_ce_11s, workers_cen_11s = count_error_on_data(model_11s, images, labels_list, images_filenames, copy_images_and_labels=True, output_dir = None)
+
+    data = [drones_mae_11s, drones_n_11s, workers_mae_11s, workers_n_11s]
+    data2 = [drones_ce_11s, drones_cen_11s, workers_ce_11s, workers_cen_11s]
+
+    print(data2)
+
+    graphing(data, "Mean Absolute Error on 11s", "Number of bees in a class", "Error", ["Drones", "Workers"], output_directory)
+    graphing(data2, "Count Error on 11s", "Number of bees in a class", "Count Error", ["Drones", "Workers"], output_directory)
+
