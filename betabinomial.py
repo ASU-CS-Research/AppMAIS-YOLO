@@ -287,14 +287,14 @@ def count_error_on_data(model, images: List[np.ndarray], labels: np.ndarray, ima
 
     return drones_ce, drones_ce_n, workers_ce, workers_ce_n
 
-def graph(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
+def graph_scatter(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
     plt.plot(data[3], data[2], 'ro', ms=8, label=key[0])
     plt.plot(data[1], data[0], 'bo', ms=8, label=key[1])
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    # m, b = np.polyfit(data[3], data[2], 1)
-    # plt.plot(data[3], np.multiply(int(m) , data[3]) + b)
+    m2, m, b = np.polyfit(data[3], data[2], 2)
+    plt.plot(data[3], np.multiply(int(m) , np.multiply(data[3] , data[3])) + np.multiply(int(m) , data[3]) + b)
 
     # to figure out how the line might work for log fit and exponential fit
     # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
@@ -304,7 +304,33 @@ def graph(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir
 
     filename = title.replace(" ", "_")
     plt.savefig(os.path.join(output_dir, filename + '.png'))
-    # plt.clf()
+    plt.clf()
+
+def graph_1_hist(data, title: str, xlabel: str, output_dir: str):
+    plt.hist(data, ls = 'solid')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    filename = title.replace(" ", "_")
+    plt.savefig(os.path.join(output_dir, filename + '.png'))
+    plt.clf()
+
+def graph_2_hist(data, title: str, xlabel: str, key, output_dir: str):
+    plt.hist(data[0], color="red", label=key[0], hatch='-', alpha=0.3, ls = 'solid')
+    plt.hist(data[1], color="blue", label=key[1], hatch='X', alpha=0.3, ls = 'solid')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    filename = title.replace(" ", "_")
+    plt.savefig(os.path.join(output_dir, filename + '.png'))
+    plt.clf()
+
+# write a funtion that plots the data in a box plot
+def graph_box(data, title: str, xlabel: str, output_dir: str):
+    plt.boxplot(data, vert=False)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    filename = title.replace(" ", "_")
+    plt.savefig(os.path.join(output_dir, filename + '.png'))
+    plt.clf()
 
 def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str], List[List[List[float]]]] :
     """
@@ -340,7 +366,7 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
     return images, image_filenames, label_list
 
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data"
+    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/cv_dataset"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -370,8 +396,27 @@ if __name__ == "__main__":
     data = [drones_mae_11s, drones_n_11s, workers_mae_11s, workers_n_11s]
     data2 = [drones_ce_11s, drones_cen_11s, workers_ce_11s, workers_cen_11s]
 
-    print(data2)
+    # put the elements of drones_mae_11s and workers_mae_11s into a list
+    box_data = []
+    for i in range(len(drones_mae_11s)):
+        box_data.append(drones_mae_11s[i])
+        box_data.append(drones_n_11s[i])
+    # put the elements of drones_ce_11s and workers_ce_11s into a list
+    box_data2 = []
+    for i in range(len(drones_ce_11s)):
+        box_data2.append(drones_ce_11s[i])
+        box_data2.append(workers_ce_11s[i])
 
-    graph(data, "MAE on 11s", "Number of bees", "Error", ["Drones", "Workers"], output_directory)
-    graph(data2, "Count Error on 11s", "Number of bees in a class", "Count Error", ["Drones", "Workers"], output_directory)
+    graph_scatter(data, "MAE on 11s cv dataset", "Number of bees", "Error", ["Drones", "Workers"], output_directory)
+    graph_scatter(data2, "Count Error on 11s cv dataset", "Number of bees", "Count Error", ["Drones", "Workers"], output_directory)
+    graph_2_hist([drones_mae_11s, workers_mae_11s], "Mean Absolute Error on Hive 11s cv Dataset", "Error", ["Drones", "Workers"], output_directory)
+    graph_2_hist([drones_ce_11s, workers_ce_11s], "Count Error on 11s cv Dataset", "Count Error", ["Drones", "Workers"], output_directory)
+    graph_1_hist(drones_mae_11s, "Drones MAE on 11s cv Dataset Histogram", "Error", output_directory)
+    graph_1_hist(workers_mae_11s, "Workers MAE on 11s cv Dataset Histogram", "Error", output_directory)
+    graph_1_hist(drones_ce_11s, "Drones Count Error on 11s cv Dataset Histogram", "Count Error", output_directory)
+    graph_1_hist(workers_ce_11s, "Workers Count Error on 11s cv Dataset Histogram", "Count Error", output_directory)
+    graph_box(drones_mae_11s, "Drones Mean Absolute Error on 11s cv Dataset Boxplot", "Error", output_directory)
+    graph_box(workers_mae_11s, "Workers Mean Absolute Error on 11s cv Dataset Boxplot", "Error", output_directory)
+    graph_box(drones_ce_11s, "Drones Count Error on 11s cv Dataset Boxplot", "Count Error", output_directory)
+    graph_box(workers_ce_11s, "Workers Count Error on 11s cv Dataset Boxplot", "Count Error", output_directory)
 
