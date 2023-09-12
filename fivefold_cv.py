@@ -86,7 +86,7 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
         model = ultralytics.YOLO(model_path)
         images, image_filenames, labels = parse_images_and_labels(val_set_path)
         predictions = model.predict(images, conf=0.64)
-        for results, label in zip(predictions, labels):
+        for results, label, image_filename in zip(predictions, labels, image_filenames):
             (workers_true, drones_true), (workers_predicted, drones_predicted) = \
                 get_caste_count_labels_results(label, results)
             workers_true_predicted.append((workers_true, workers_predicted))
@@ -110,11 +110,11 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
     plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
          "Worker Count Predicted against True",
          f"model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
-         save_dest="workers_pred_v_true_cv.png", show=True)
+         save_dest="workers_pred_v_true_cv.png", plot_x_e_y=True, show=True)
     plot(drones_true, drones_predicted, "True Drone Count", "Predicted Drone Count",
          "Drone Count Predicted against True",
          f"model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
-         save_dest="drones_pred_v_true_cv.png", show=True)
+         save_dest="drones_pred_v_true_cv.png", plot_x_e_y=True, show=True)
     return mean_log_likelihoods
 
 

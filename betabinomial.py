@@ -45,7 +45,6 @@ def get_caste_count_labels_results(label, result):
     for box in label:
         if len(box) == 0:
             continue
-
         a_true += 1 if box[0] == 1 else 0
         b_true += 1 if box[0] == 0 else 0
     a_pred = 0

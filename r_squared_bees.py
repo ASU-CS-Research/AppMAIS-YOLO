@@ -15,8 +15,11 @@ def r_squared(y_true, y_pred):
     return 1 - (ss_res / ss_tot)
 
 #write a function that plots predicted vs true values
-def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, show=False):
+def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=False, show=False):
     plt.clf()
+    if plot_x_e_y:
+        # plot a dashed x=y line to the extent of the greatest x
+        plt.plot([0, max(x)], [0, max(x)], 'k--', label='x=y')
     # add a color to each point based on the z value
     plt.scatter(x, y, cmap='cool', label='data')
     plt.xlabel(x_label)
@@ -24,7 +27,8 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, show=False):
     #plt.colorbar()
     plt.title(title)
     plt.suptitle(suptitle)
-    #plt.legend(loc='best')
+    # if plot_x_e_y:
+    #     plt.legend(loc='best')
     plt.tight_layout()
     if save_dest:
         plt.savefig(save_dest)
@@ -59,13 +63,13 @@ if __name__ == "__main__":
                     label[1] += 1
             labels.append(label)
 
-    predictions = model(images)
+    predictions = model.predict(images, conf=0.64)
 
     # get the number of drones and workers predicted
 
     pred = []  # this is in the format [[drones, workers], [drones, workers], ...]
 
-    for prediction in predictions:
+    for prediction, image_name, label in zip(predictions, images_names, labels):
         boxes = prediction.boxes
         drones = 0
         workers = 0
@@ -120,14 +124,13 @@ if __name__ == "__main__":
     plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
          f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
          f"model: {os.path.basename(model_path)}, data: 1s val set",
-         "drones_pred_v_true.png", show=True)
+         "drones_pred_v_true.png", plot_x_e_y=True, show=True)
 
     # plot the predicted vs true values for workers
     plot(workers_true, workers_pred , "True Worker Count", "Predicted Worker Count",
          f"Worker Count Predicted against True (r^2 = {r_squared_workers})",
          f"model: {os.path.basename(model_path)}, data: 1s val set",
-         "workers_pred_v_true.png", show=True)
+         "workers_pred_v_true.png", plot_x_e_y=True, show=True)
 
-    #numpy function that takes the absolute value of a list
 
 

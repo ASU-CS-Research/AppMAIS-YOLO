@@ -5,16 +5,16 @@ import numpy as np
 from loguru import logger
 from datetime import datetime
 
-num_frames_to_retrieve = 60
+num_frames_to_retrieve = 100
 frame_indices = np.random.rand(num_frames_to_retrieve) * 1794
-output_path = os.path.abspath("/home/olofintuyita/Desktop/busy_frames_hive_1s")
+output_path = os.path.abspath("./even_more_11s_frames")
 
 os.makedirs(output_path, exist_ok=True)
 
 # Connect to MongoDB
 client = pymongo.MongoClient()
 db = client.beeDB
-video_collection = db.Tags
+video_collection = db.VideoFiles
 logger.debug('Connected to database...')
 
 logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
@@ -39,18 +39,12 @@ date_string_format = "%Y-%m-%d"
 #     {'$sample': {'size': num_frames_to_retrieve}}
 # ]
 aggregation_pipeline = [
-    #{"$match": {"HiveName": {'$in': ['AppMAIS11R']}}},
-    # {"$match": {'Tag': "Drones"}},
-    #{"$match": {'TimeStamp': {'$gt': datetime.strptime("2022-09-19", date_string_format),
-     #               '$lt': datetime.strptime("2022-10-17", date_string_format)}}},
-
-    {"$match": {"Tag": {'$in': ['Bearding', 'Washboarding', 'Fanning', 'Swarm']}}},
-    {"$match": {"HiveName": {'$in': ['AppMAIS1R', 'AppMAIS1L', 'AppMAIS1RB', 'AppMAIS1LB']}}},
+    {"$match": {"HiveName": {'$in': ['AppMAIS11R', 'AppMAIS11L', 'AppMAIS11RB', 'AppMAIS11LB']}}},
     {'$match': {
          '$expr': {
             '$and': [
-                {'$gte': [{'$hour': "$UTCDate"}, 12]},
-                {'$lt':  [{'$hour': "$UTCDate"}, 16]}
+                {'$gte': [{'$hour': "$TimeStamp"}, 12]},
+                {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
             ]
         }}},
     {"$sample": {'size': num_frames_to_retrieve}}
@@ -77,7 +71,7 @@ for i, video_file_entry in enumerate(video_files_entries):
             break
     if frame is not None:
         logger.info(f'Writing frame {frame_indices[i]} from video {i} to disk.')
-        path = os.path.join(output_path, f'video_{os.path.basename(filepath[:-5])}_frame_{i}.png')
+        path = os.path.join(output_path, f'video_{os.path.basename(filepath[:-5])}_frame_{int(frame_indices[i])}.png')
         cv2.imwrite(path, frame)
     else:
         logger.warning(f'Frame {frame_indices[i]} not found in video {i}.')
