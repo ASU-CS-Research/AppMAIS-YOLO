@@ -44,7 +44,7 @@ def load_model_ultralytics(model_path):
 
 def run_predictions_on_video(model, video_filepath, destination_video_path, show: Optional[bool] = False,
                              max_frames: Optional[int] = None, batch_size: Optional[int] = 16,
-                             conf: Optional[float] = 0.25):
+                             conf: Optional[float] = 0.2):
     capture = cv2.VideoCapture(video_filepath)
     count = 0
     frames = []
@@ -111,6 +111,7 @@ if __name__ == '__main__':
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     frame_ind = 120
     model = load_model_ultralytics(model_path)
-    run_predictions_on_video(model, video_filepath, show=True)
+    destination_video_path = os.path.abspath('output21.mp4')
+    run_predictions_on_video(model = model, video_filepath = video_filepath, destination_video_path = destination_video_path, show=False)
 
     # print(model.info())
