@@ -287,14 +287,32 @@ def count_error_on_data(model, images: List[np.ndarray], labels: np.ndarray, ima
 
     return drones_ce, drones_ce_n, workers_ce, workers_ce_n
 
-def graph_scatter(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
-    plt.plot(data[3], data[2], 'ro', ms=8, label=key[0])
+def graph_scatter_1(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
     plt.plot(data[1], data[0], 'bo', ms=8, label=key[1])
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     m2, m, b = np.polyfit(data[3], data[2], 2)
     plt.plot(data[3], np.multiply(int(m) , np.multiply(data[3] , data[3])) + np.multiply(int(m) , data[3]) + b)
+
+    # to figure out how the line might work for log fit and exponential fit
+    # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
+    # or https://stackoverflow.com/questions/3433486/how-to-do-exponential-and-logarithmic-curve-fitting-in-python-i-found-only-poly
+    # for higher degree polynomial fits, increase the third parameter of np.polyfit and put more
+    # variables to receive the output of np.polyfit
+
+    filename = title.replace(" ", "_")
+    plt.savefig(os.path.join(output_dir, filename + '.png'))
+    plt.clf()
+    
+def graph_scatter_2(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
+    plt.plot(data[2], data[3], 'bo', ms=8, label=key[1])
+    plt.plot(data[0], data[1], 'ro', ms=8, label=key[0])
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    m2, m, b = np.polyfit(data[3], data[2], 2)
+    # plt.plot(data[2], np.multiply(int(m) , np.multiply(data[2] , data[2])) + np.multiply(int(m) , data[2]) + b)
 
     # to figure out how the line might work for log fit and exponential fit
     # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
@@ -365,8 +383,29 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
             label_list.append(image_label)
     return images, image_filenames, label_list
 
+def get_frequency_values(values):
+    # x = np.array(x)
+    # unique, counts = np.unique(x, return_counts=True)
+    # return unique, counts
+    ranges_freq = {}
+    for  value in values:
+        x = int(value/0.5)
+        if x in ranges_freq:
+            ranges_freq[x] += 1
+        else:
+            ranges_freq[x] = 1
+    ranges = []
+    freqs = []
+    for key in ranges_freq:
+        ranges.append(key * 0.5)
+        freqs.append(ranges_freq[key])
+    return ranges, freqs
+
+def jitter(values, jitter=0.2):
+    return [value + np.random.uniform(-jitter, jitter) for value in values]
+
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/cv_dataset"
+    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/test"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -407,16 +446,34 @@ if __name__ == "__main__":
         box_data2.append(drones_ce_11s[i])
         box_data2.append(workers_ce_11s[i])
 
-    graph_scatter(data, "MAE on 11s cv dataset", "Number of bees", "Error", ["Drones", "Workers"], output_directory)
-    graph_scatter(data2, "Count Error on 11s cv dataset", "Number of bees", "Count Error", ["Drones", "Workers"], output_directory)
-    graph_2_hist([drones_mae_11s, workers_mae_11s], "Mean Absolute Error on Hive 11s cv Dataset", "Error", ["Drones", "Workers"], output_directory)
-    graph_2_hist([drones_ce_11s, workers_ce_11s], "Count Error on 11s cv Dataset", "Count Error", ["Drones", "Workers"], output_directory)
-    graph_1_hist(drones_mae_11s, "Drones MAE on 11s cv Dataset Histogram", "Error", output_directory)
-    graph_1_hist(workers_mae_11s, "Workers MAE on 11s cv Dataset Histogram", "Error", output_directory)
-    graph_1_hist(drones_ce_11s, "Drones Count Error on 11s cv Dataset Histogram", "Count Error", output_directory)
-    graph_1_hist(workers_ce_11s, "Workers Count Error on 11s cv Dataset Histogram", "Count Error", output_directory)
-    graph_box(drones_mae_11s, "Drones Mean Absolute Error on 11s cv Dataset Boxplot", "Error", output_directory)
-    graph_box(workers_mae_11s, "Workers Mean Absolute Error on 11s cv Dataset Boxplot", "Error", output_directory)
-    graph_box(drones_ce_11s, "Drones Count Error on 11s cv Dataset Boxplot", "Count Error", output_directory)
-    graph_box(workers_ce_11s, "Workers Count Error on 11s cv Dataset Boxplot", "Count Error", output_directory)
+    # graph mae of drones and workers on the 1s dataset on the same graph
+    
 
+    # graph_scatter(data, "MAE on 1s dataset", "Number of bees", "Error", ["Drones", "Workers"], output_directory)
+    # graph_scatter(data2, "Count Error on 1s dataset", "Number of bees", "Count Error", ["Drones", "Workers"], output_directory)
+    # graph_2_hist([drones_mae_11s, workers_mae_11s], "Mean Absolute Error on Hive 1s Dataset", "Error", ["Drones", "Workers"], output_directory)
+    # graph_2_hist([drones_ce_11s, workers_ce_11s], "Count Error on 1s Dataset", "Count Error", ["Drones", "Workers"], output_directory)
+    # graph_1_hist(drones_mae_11s, "Drones MAE on 1s Dataset Histogram", "Error", output_directory)
+    # graph_1_hist(workers_mae_11s, "Workers MAE on 1s Dataset Histogram", "Error", output_directory)
+    # graph_1_hist(drones_ce_11s, "Drones Count Error on 1s Dataset Histogram", "Count Error", output_directory)
+    # graph_1_hist(workers_ce_11s, "Workers Count Error on 1s Dataset Histogram", "Count Error", output_directory)
+    # graph_box(drones_mae_11s, "Drones Mean Absolute Error on 1s Dataset Boxplot", "Error", output_directory)
+    # graph_box(workers_mae_11s, "Workers Mean Absolute Error on 1s Dataset Boxplot", "Error", output_directory)
+    # graph_box(drones_ce_11s, "Drones Count Error on 1s Dataset Boxplot", "Count Error", output_directory)
+    # graph_box(workers_ce_11s, "Workers Count Error on 1s Dataset Boxplot", "Count Error", output_directory)
+
+    freq_drones_mae = get_frequency_values(drones_mae_11s)
+    freq_drones_mae = list(freq_drones_mae)
+    freq_drones_mae[1] = jitter(freq_drones_mae[1])
+    freq_drones_mae = tuple(freq_drones_mae)
+
+    freq_workers_mae = get_frequency_values(workers_mae_11s)
+    freq_workers_mae = list(freq_workers_mae)
+    freq_workers_mae[1] = jitter(freq_workers_mae[1])
+    freq_workers_mae = tuple(freq_workers_mae)
+
+    freq_mae = [freq_drones_mae[0], freq_drones_mae[1], freq_workers_mae[0], freq_workers_mae[1]]
+
+    graph_scatter_2(freq_mae, "Mean Absolute Error on 1s dataset", "Error", "Frequency", ["Drones", "Workers"], output_directory)
+
+    print(freq_mae)
