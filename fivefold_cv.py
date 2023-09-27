@@ -104,19 +104,34 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
         print(f'drone rmse: {drone_rmse_metrics[-1]}\n')
     workers_true, workers_predicted = zip(*workers_true_predicted)
     drones_true, drones_predicted = zip(*drones_true_predicted)
-    plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
-         "Worker Count Predicted against True", "model: 5-fold cv",
-         save_dest="workers_pred_v_true_cv.png", show=True)
-    plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
-         "Worker Count Predicted against True",
-         f"model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
-         save_dest="workers_pred_v_true_cv.png", plot_x_e_y=True, show=True)
-    plot(drones_true, drones_predicted, "True Drone Count", "Predicted Drone Count",
-         "Drone Count Predicted against True",
-         f"model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
-         save_dest="drones_pred_v_true_cv.png", plot_x_e_y=True, show=True)
+    # plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
+    #      "Worker Count Predicted against True", "model: 5-fold cv",
+    #      save_dest="workers_pred_v_true_cv.png", show=True)
+    # plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
+    #      "Worker Count Predicted against True",
+    #      f"model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
+    #      save_dest="workers_pred_v_true_cv.png", plot_x_e_y=True, show=True)
+    # plot(drones_true, drones_predicted, "True Drone Count", "Predicted Drone Count",
+    #      "Drone Count Predicted against True",
+    #      f"model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
+    #      save_dest="drones_pred_v_true_cv.png", plot_x_e_y=True, show=True)
+
+    all_true = []
+    all_pred = []
+    all_true.extend(workers_true)
+    all_true.extend(drones_true)
+    all_pred.extend(workers_predicted)
+    all_pred.extend(drones_predicted)
+
+    plot([workers_true, jitter(drones_true)], [workers_predicted, jitter(drones_predicted)], "True Count", "Predicted Count",
+         f"Count Predicted against True (r_squared = {r_squared(all_true, all_pred)})",
+         f"model: 5-fold cv, data: Test dataset",
+         "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
+
     return mean_log_likelihoods
 
+def jitter(values, jitter=0.5):
+    return [value + np.random.uniform(-jitter, jitter) for value in values]
 
 if __name__ == '__main__':
     # data_path = os.data_path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/cv_dataset')
