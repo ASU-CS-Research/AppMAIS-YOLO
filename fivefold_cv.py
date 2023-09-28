@@ -47,7 +47,7 @@ def split_data(data_path, random_state=42, shuffle=True):
     images_path = os.path.join(data_path, 'images')
     labels_path = os.path.join(data_path, 'labels')
     # Split the data at the data data_path into 5 folds
-    # For each fold, train the model on the other 4 folds and evaluate on the remaining fold
+    # For each fold, train the ultralytics_model on the other 4 folds and evaluate on the remaining fold
     kfold = KFold(n_splits=5, shuffle=shuffle, random_state=random_state)
     print(len(os.listdir(images_path)), " total images.")
     image_filenames = os.listdir(images_path)
@@ -66,11 +66,11 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
     """
     Compare the log likelihoods of the models on the respective validation sets.
     Args:
-        model_paths List[str]: A list of paths to the model weights to compare.
-        val_set_paths List[str]: A list of paths to the respective val set for each trained model
+        model_paths List[str]: A list of paths to the ultralytics_model weights to compare.
+        val_set_paths List[str]: A list of paths to the respective val set for each trained ultralytics_model
 
     Returns:
-        List[float]: A list in the order of the model paths of the mean log likelihoods of the models on the
+        List[float]: A list in the order of the ultralytics_model paths of the mean log likelihoods of the models on the
         respective validation sets.
     """
     mean_log_likelihoods = []
@@ -105,15 +105,15 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
     workers_true, workers_predicted = zip(*workers_true_predicted)
     drones_true, drones_predicted = zip(*drones_true_predicted)
     # plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
-    #      "Worker Count Predicted against True", "model: 5-fold cv",
+    #      "Worker Count Predicted against True", "ultralytics_model: 5-fold cv",
     #      save_dest="workers_pred_v_true_cv.png", show=True)
     # plot(workers_true, workers_predicted, "True Worker Count", "Predicted Worker Count",
     #      "Worker Count Predicted against True",
-    #      f"model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
+    #      f"ultralytics_model: 5-fold cv, r_squared: {r_squared(workers_true, workers_predicted)}",
     #      save_dest="workers_pred_v_true_cv.png", plot_x_e_y=True, show=True)
     # plot(drones_true, drones_predicted, "True Drone Count", "Predicted Drone Count",
     #      "Drone Count Predicted against True",
-    #      f"model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
+    #      f"ultralytics_model: 5-fold cv, r_squared: {r_squared(drones_true, drones_predicted)}",
     #      save_dest="drones_pred_v_true_cv.png", plot_x_e_y=True, show=True)
 
     all_true = []
@@ -125,8 +125,15 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
 
     plot([workers_true, jitter(drones_true)], [workers_predicted, jitter(drones_predicted)], "True Count", "Predicted Count",
          f"Count Predicted against True (r_squared = {r_squared(all_true, all_pred)})",
-         f"model: 5-fold cv, data: Test dataset",
+         f"ultralytics_model: 5-fold cv, data: Test dataset",
          "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
+
+    plot([workers_true, drones_true], [workers_predicted, drones_predicted], "True Count",
+         "Predicted Count",
+         f"Bee Count Predicted against True",
+         f"model: 5-fold cv, data: Test dataset",
+         "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"],
+         alpha=0.6)
 
     return mean_log_likelihoods
 

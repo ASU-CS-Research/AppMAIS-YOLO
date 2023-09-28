@@ -15,7 +15,7 @@ def get_model_results(model, images, labels=None, image_filenames=None):
     for i, (model_image, label_image, image_filename, result, label) in enumerate(zip(
             images_for_model_output, images_for_label_output, image_filenames, results, labels
         )):
-        # Plot the model output
+        # Plot the ultralytics_model output
         bounding_boxes = result.boxes
         for box in bounding_boxes:
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
@@ -264,23 +264,24 @@ if __name__ == "__main__":
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
     data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
-
-    # model_11s = ultralytics.YOLO("/home/bee/bee-detection/final_model.pt")
-    model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
+    model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
+    ultralytics_model = ultralytics.YOLO(model_path)
+    # ultralytics_model = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
 
     images, images_filenames, labels_list = parse_images_and_labels(data_path)
 
     output_directory = os.path.abspath('/home/bee/bee-detection/model_and_label_outputs/')
-    log_likelihoods_11s = beta_binom_on_data(model_11s, images, labels_list, images_filenames,
+    log_likelihoods_11s = beta_binom_on_data(ultralytics_model, images, labels_list, images_filenames,
                                              copy_images_and_labels=False,
                                              output_dir=output_directory)
-    print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the 11s data.')
+    print(f'The mean log likelihood is {np.mean(log_likelihoods_11s)} from the model: {os.path.basename(model_path)}.')
     sorted_likelihoods = sorted(zip(log_likelihoods_11s, images_filenames), key=lambda x: x[0], reverse=True)
     print(sorted_likelihoods)
     # log_likelihoods_1s = beta_binom_on_data(model_1s, images, labels_list)
     # print(f'On the 11s val set, the mean log likelihood is {np.mean(log_likelihoods_11s)} from the model trained on the '
-    #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the model trained on the 1s data.')
+    #       f'11s data. The mean log likelihood is {np.mean(log_likelihoods_1s)} from the ultralytics_model trained on the 1s data.')
 
-    drones_rmse_11s, workers_rmse_11s = rmse_on_data(model_11s, images, labels_list, images_filenames)
+    drones_rmse_11s, workers_rmse_11s = rmse_on_data(ultralytics_model, images, labels_list, images_filenames)
     print(f"drone rmse: {drones_rmse_11s}, \nworker rmse: {workers_rmse_11s}")

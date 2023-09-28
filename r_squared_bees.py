@@ -15,18 +15,18 @@ def r_squared(y_true, y_pred):
     return 1 - (ss_res / ss_tot)
 
 #write a function that plots predicted vs true values
-def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=False, show=False, key = None):
+def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=False, show=False, key = None, alpha=0.6):
     plt.clf()
     font = {#'family': 'normal',
-            #'weight': 'bold',
-            'size': 30}
+    #         #'weight': 'bold',
+            'size': 14}
     plt.rc('font', **font)
     if plot_x_e_y:
         # plot a dashed x=y line to the extent of the greatest x
-        plt.plot([0, max(x[0])], [0, max(x[0])], 'k--', label='x=y', linewidth=3)
+        plt.plot([0, max(x[0])], [0, max(x[0])], 'k--', label='x=y', linewidth=1)
     # add a color to each point based on the z value
-    plt.scatter(x[0], y[0], cmap='cool', label=key[0], s=120)
-    plt.scatter(x[1], y[1], cmap='warm', label=key[1], s=120)
+    plt.scatter(x[0], y[0], cmap='cool', label=key[0], alpha=alpha)
+    plt.scatter(x[1], y[1], cmap='warm', label=key[1], alpha=alpha)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
 
@@ -43,14 +43,15 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=Fal
         plt.show()
 
 if __name__ == "__main__":
-    model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
+    # model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
+    model_path = os.path.abspath("/home/bee/bee-detection/trained_on_11r_2022.pt")
     model = ultralytics.YOLO(model_path)
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
+    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
-    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
-
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
+    #
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/")
     images_names = os.listdir(os.path.join(data_path, "images"))
     images_names.sort()
@@ -135,31 +136,38 @@ if __name__ == "__main__":
 
             labels.append(image_label)
 
-    log_likelihoods = betabinomial.beta_binom_on_data(images=images, labels=formated_labels, model=model, image_filenames=images_names)
+    log_likelihoods = betabinomial.beta_binom_on_data(images=images, labels=formated_labels, model=model,
+                                                      image_filenames=images_names)
 
     # plot the predicted vs true values for drones (seems to look odd on first plt.show(), running twice fixes it)
     # plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
     #      f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
-    #      f"model: {os.path.basename(model_path)}, data: test set",
+    #      f"ultralytics_model: {os.path.basename(model_path)}, data: test set",
     #      "drones_pred_v_true.png", show=True)
     #
     # # plot the predicted vs true values for drones
     # plot(drones_true, drones_pred, "True Drone Count", "Predicted Drone Count",
     #      f"Drone Count Predicted against True (r^2 = {r_squared_drones})",
-    #      f"model: {os.path.basename(model_path)}, data: Test dataset",
+    #      f"ultralytics_model: {os.path.basename(model_path)}, data: Test dataset",
     #      "drones_pred_v_true.png", plot_x_e_y=True, show=True)
     #
     # # plot the predicted vs true values for workers
     # plot(workers_true, workers_pred , "True Worker Count", "Predicted Worker Count",
     #      f"Worker Count Predicted against True (r^2 = {r_squared_workers})",
-    #      f"model: {os.path.basename(model_path)}, data: Test dataset",
+    #      f"ultralytics_model: {os.path.basename(model_path)}, data: Test dataset",
     #      "workers_pred_v_true.png", plot_x_e_y=True, show=True)
 
     # plot both on the same graph
+    # suptitle can be cropped out for the paper, but it's useful for metric logging
     plot([workers_true, drones_true], [workers_pred, drones_pred], "True Count", "Predicted Count",
-         f"Count Predicted against True (r^2 = {r_squared_all})",
-         f"model: {os.path.basename(model_path)}, data: Test dataset",
+         f"Bee Count Predicted against True",
+         f"{os.path.basename(model_path)}, {os.path.basename(data_path)}, worker r^2 "
+         f"{r_squared_workers: .3f}, drone r^2 {r_squared_drones: .3f}",
          "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
 
-
+    plot([workers_true, drones_true], [workers_pred, drones_pred], "True Count", "Predicted Count",
+         f"Bee Count Predicted against True",
+         f"{os.path.basename(model_path)[:-3]}, {os.path.basename(data_path)}, w r^2 "
+         f"{r_squared_workers: .3f}, d r^2 {r_squared_drones: .3f}",
+         "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
 

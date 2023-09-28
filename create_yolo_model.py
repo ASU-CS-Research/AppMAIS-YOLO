@@ -11,7 +11,7 @@ print(metrics)
 model.export()
 
 # lym.run_predictions_on_video(
-#     model=model,
+#     ultralytics_model=ultralytics_model,
 #     video_filepath="/home/obrienwr/AppMAIS-YOLO/videos/AppMAIS11L@2023-06-24@18-15-00fanning.h264",
 #     destination_video_path="./AppMAIS11L@2023-06-24@18-15-00fanning.mp4", show=False, batch_size=512, conf=0.64
 # )

@@ -26,7 +26,7 @@ def get_frame_from_video(path: str, frame_ind: int):
 
 def load_yolo_model_pytorch(model_path, video_filepath, frame_ind):
     model_and_info = load_yolo_model(model_path)
-    model = model_and_info['model']
+    model = model_and_info['ultralytics_model']
     model.eval()
     frame = get_frame_from_video(video_filepath, frame_ind)  # 120
     frame = frame / 255.0
@@ -77,7 +77,7 @@ def run_predictions_on_video(model, video_filepath, destination_video_path, show
                 if cv2.waitKey(30) & 0xFF == ord('q'):
                     break
 
-    # predictions = model.predict(frames)
+    # predictions = ultralytics_model.predict(frames)
     #
     # for frame, results in zip(frames, predictions):
     #     bounding_boxes = results.boxes
@@ -113,4 +113,4 @@ if __name__ == '__main__':
     model = load_model_ultralytics(model_path)
     run_predictions_on_video(model, video_filepath, show=True)
 
-    # print(model.info())
+    # print(ultralytics_model.info())
