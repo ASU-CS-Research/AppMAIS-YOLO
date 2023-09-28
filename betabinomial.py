@@ -262,9 +262,11 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
 
 if __name__ == "__main__":
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
-    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
+    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
 
-    model_11s = ultralytics.YOLO("/home/bee/bee-detection/final_model.pt")
+    # model_11s = ultralytics.YOLO("/home/bee/bee-detection/final_model.pt")
+    model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
 
     images, images_filenames, labels_list = parse_images_and_labels(data_path)

@@ -14,7 +14,7 @@ os.makedirs(output_path, exist_ok=True)
 # Connect to MongoDB
 client = pymongo.MongoClient()
 db = client.beeDB
-video_collection = db.VideoFiles
+video_collection = db.Tags
 logger.debug('Connected to database...')
 
 logger.info(f'Retrieving {num_frames_to_retrieve} videos from database')
@@ -38,15 +38,19 @@ date_string_format = "%Y-%m-%d"
 #                          # {'$match': {"Tag": {"$eq": "Drone"}}},
 #     {'$sample': {'size': num_frames_to_retrieve}}
 # ]
+# aggregation_pipeline = [
+#     {"$match": {"HiveName": {'$in': ['AppMAIS11R', 'AppMAIS11L', 'AppMAIS11RB', 'AppMAIS11LB']}}},
+#     {'$match': {
+#          '$expr': {
+#             '$and': [
+#                 {'$gte': [{'$hour': "$TimeStamp"}, 12]},
+#                 {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
+#             ]
+#         }}},
+#     {"$sample": {'size': num_frames_to_retrieve}}
+# ]
 aggregation_pipeline = [
-    {"$match": {"HiveName": {'$in': ['AppMAIS11R', 'AppMAIS11L', 'AppMAIS11RB', 'AppMAIS11LB']}}},
-    {'$match': {
-         '$expr': {
-            '$and': [
-                {'$gte': [{'$hour': "$TimeStamp"}, 12]},
-                {'$lt':  [{'$hour': "$TimeStamp"}, 16]}
-            ]
-        }}},
+    {'$match': {"Tag": "Swarm"}},
     {"$sample": {'size': num_frames_to_retrieve}}
 ]
 video_files_entries = video_collection.aggregate(aggregation_pipeline)
