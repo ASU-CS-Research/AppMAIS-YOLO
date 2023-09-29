@@ -294,6 +294,7 @@ def graph_scatter_1(data: [], title: str, xlabel: str, ylabel: str, key: [str], 
     plt.ylabel(ylabel)
     m2, m, b = np.polyfit(data[3], data[2], 2)
     plt.plot(data[3], np.multiply(int(m) , np.multiply(data[3] , data[3])) + np.multiply(int(m) , data[3]) + b)
+    plt.show()
 
     # to figure out how the line might work for log fit and exponential fit
     # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
@@ -306,13 +307,15 @@ def graph_scatter_1(data: [], title: str, xlabel: str, ylabel: str, key: [str], 
     plt.clf()
     
 def graph_scatter_2(data: [], title: str, xlabel: str, ylabel: str, key: [str], output_dir: str):
-    plt.plot(data[2], data[3], 'bo', ms=8, label=key[1])
-    plt.plot(data[0], data[1], 'ro', ms=8, label=key[0])
+    plt.plot(data[2], data[3], 'bo', color = 'orange', ms=8, label=key[1], alpha=0.8)
+    plt.plot(data[0], data[1], 'ro', color = 'blue', ms=8, label=key[0], alpha=0.5 )
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     m2, m, b = np.polyfit(data[3], data[2], 2)
     # plt.plot(data[2], np.multiply(int(m) , np.multiply(data[2] , data[2])) + np.multiply(int(m) , data[2]) + b)
+    plt.legend(loc='best')
+    plt.show()
 
     # to figure out how the line might work for log fit and exponential fit
     # go to https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
@@ -333,7 +336,7 @@ def graph_1_hist(data, title: str, xlabel: str, output_dir: str):
     plt.clf()
 
 def graph_2_hist(data, title: str, xlabel: str, key, output_dir: str):
-    plt.hist(data[0], color="red", label=key[0], hatch='-', alpha=0.3, ls = 'solid')
+    plt.hist(data[0], color="orange", label=key[0], hatch='-', alpha=0.3, ls = 'solid')
     plt.hist(data[1], color="blue", label=key[1], hatch='X', alpha=0.3, ls = 'solid')
     plt.title(title)
     plt.xlabel(xlabel)
@@ -405,7 +408,7 @@ def jitter(values, jitter=0.2):
     return [value + np.random.uniform(-jitter, jitter) for value in values]
 
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/test"
+    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
