@@ -408,7 +408,7 @@ def jitter(values, jitter=0.2):
     return [value + np.random.uniform(-jitter, jitter) for value in values]
 
 if __name__ == "__main__":
-    data_path = "/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data"
+    data_path = "/home/bee/bee-detection/data_appmais_lab/stretch_test_2"
 
     model_11s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
     # model_1s = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -477,6 +477,7 @@ if __name__ == "__main__":
 
     freq_mae = [freq_drones_mae[0], freq_drones_mae[1], freq_workers_mae[0], freq_workers_mae[1]]
 
-    graph_scatter_2(freq_mae, "Mean Absolute Error on 1s dataset", "Error", "Frequency", ["Drones", "Workers"], output_directory)
+    graph_scatter_2(freq_mae, "Mean Absolute Error on Swarm Dataset", "Error", "Frequency", ["Drones", "Workers"], output_directory)
+
 
     print(freq_mae)
