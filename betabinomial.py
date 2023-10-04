@@ -19,20 +19,22 @@ def get_model_results(model, images, labels=None, image_filenames=None):
         bounding_boxes = result.boxes
         for box in bounding_boxes:
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)),
-                         color=(255 * abs(class_id - 1), 0, 255 * class_id), thickness=2)
+                         color=color, thickness=2)
             cv.putText(model_image, f'{conf * 100: .2f}', (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
-                       (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+                       color, 2)
         # Plot the human made labels_list
         for box in label:
             # box is given as class_id, center_x, center_y, w, h all relative to image width and height.
             # We need to convert to x1, y1, x2, y2
             class_id, center_x, center_y, w, h = box
+            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
             x1 = int((center_x - w / 2) * label_image.shape[1])
             y1 = int((center_y - h / 2) * label_image.shape[0])
             x2 = int((center_x + w / 2) * label_image.shape[1])
             y2 = int((center_y + h / 2) * label_image.shape[0])
-            cv.rectangle(label_image, (x1, y1), (x2, y2), (255 * abs(class_id - 1), 0, 255 * class_id), 2)
+            cv.rectangle(label_image, (x1, y1), (x2, y2), color, 2)
         images_for_label_output[i] = label_image
         images_for_model_output[i] = model_image
 
@@ -262,9 +264,9 @@ def parse_images_and_labels(data_path: str) -> Tuple[List[np.ndarray], List[str]
 
 if __name__ == "__main__":
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
-    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
+    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
     model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
     ultralytics_model = ultralytics.YOLO(model_path)
     # ultralytics_model = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
