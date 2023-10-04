@@ -31,7 +31,7 @@ def count_samples(path):
 
 
 if __name__ == '__main__':
-    counts = count_samples("/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/labels")
+    counts = count_samples("/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test/labels")
 
     print("images: ", counts["images"])
     print("drones: ", counts["drones"])
