@@ -28,7 +28,7 @@ image_path = os.path.abspath('/home/obrienwr/AppMAIS-YOLO/test_images/AppMAIS11R
 model = ultralytics.YOLO(model=model_path)
 image = Image.open(image_path)
 
-model_children = list(model.model.model[-1].children())
+model_children = list(model.model.ultralytics_model[-1].children())
 conv_2d_layers = []
 model_weights = []
 conv_2d_layers.append()

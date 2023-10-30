@@ -100,7 +100,7 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
 
 if __name__ == '__main__':
     count_classes_from_labels(
-        '/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/train/labels'
+        '/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data/labels'
     )
     # model_path = os.data_path.abspath('./runs/detect/train7/weights/best11s.pt')
     # video_filepath = os.data_path.abspath('videos/AppMAIS11R@2022-09-01@14-45-00.mp4')

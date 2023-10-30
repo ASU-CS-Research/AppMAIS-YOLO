@@ -122,7 +122,7 @@ def load_labels_from_path(path):
     return labels
 
 if __name__ == '__main__':
-    #### We have discussed this and it may not be the best approach as it can teach the model about shifting HSV values
+    #### We have discussed this and it may not be the best approach as it can teach the ultralytics_model about shifting HSV values
     #### for the background
     # Demo how the function works
     sample_height = 100
