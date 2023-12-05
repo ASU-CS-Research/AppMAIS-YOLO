@@ -9,6 +9,7 @@ import cv2 as cv
 
 def get_model_results(model, images, labels=None, image_filenames=None):
     results = model.predict(images, conf=0.64)
+    colors = ((0, 180, 255), (255, 180, 0))
     images_for_model_output = [np.copy(image) for image in images]
     images_for_label_output = [np.copy(image) for image in images]
     # Apply bounding boxes to images
@@ -19,7 +20,7 @@ def get_model_results(model, images, labels=None, image_filenames=None):
         bounding_boxes = result.boxes
         for box in bounding_boxes:
             x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
-            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+            color = colors[int(class_id)]
             cv.rectangle(model_image, (int(x1), int(y1)), (int(x2), int(y2)),
                          color=color, thickness=2)
             cv.putText(model_image, f'{conf * 100: .2f}', (int(x1), int(y1)), cv.FONT_HERSHEY_SIMPLEX, 1,
@@ -29,7 +30,7 @@ def get_model_results(model, images, labels=None, image_filenames=None):
             # box is given as class_id, center_x, center_y, w, h all relative to image width and height.
             # We need to convert to x1, y1, x2, y2
             class_id, center_x, center_y, w, h = box
-            color = (140, 230, 240) if class_id == 1 else (0, 0, 255)
+            color = colors[int(class_id)]
             x1 = int((center_x - w / 2) * label_image.shape[1])
             y1 = int((center_y - h / 2) * label_image.shape[0])
             x2 = int((center_x + w / 2) * label_image.shape[1])
