@@ -25,8 +25,8 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=Fal
         # plot a dashed x=y line to the extent of the greatest x
         plt.plot([0, max(x[0])], [0, max(x[0])], 'k--', label='x=y', linewidth=1)
     # add a color to each point based on the z value
-    plt.scatter(x[0], y[0], cmap='cool', label=key[0], alpha=alpha)
-    plt.scatter(x[1], y[1], cmap='warm', label=key[1], alpha=alpha)
+    plt.scatter(x[0], y[0], cmap='cool', label=key[0], alpha=alpha, marker='o')
+    plt.scatter(x[1], y[1], cmap='warm', label=key[1], alpha=alpha, marker='^')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/test')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test')
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
     #
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/")

@@ -97,7 +97,7 @@ def write_yamls(dest_path, val_path):
 def metrics_on_hives(path, val_hives = hives):
     pretrained_weights = os.path.abspath("/home/olofintuyita/AppMAIS-YOLO/runs/detect/train7/weights/best.pt")
     model = ultralytics.YOLO(model=pretrained_weights)
-    # model.train(data='data.yaml', epochs=2, imgsz=(480, 640), verbose=True, batch=8, lr0=0.001)
+    # ultralytics_model.train(data='data.yaml', epochs=2, imgsz=(480, 640), verbose=True, batch=8, lr0=0.001)
 
     hive_metrics = {}
 
@@ -116,7 +116,7 @@ def metrics_on_hives(path, val_hives = hives):
 
 
 
-#lym.run_predictions_on_video(model=model, video_filepath="/home/olofintuyita/AppMAIS-YOLO/videos/AppMAIS7L@2023-06-26@11-55-00.h264", destination_video_path=f"output{hive}.mp4", show=False)
+#lym.run_predictions_on_video(ultralytics_model=ultralytics_model, video_filepath="/home/olofintuyita/AppMAIS-YOLO/videos/AppMAIS7L@2023-06-26@11-55-00.h264", destination_video_path=f"output{hive}.mp4", show=False)
 
 if __name__ == '__main__':
     _ = ""

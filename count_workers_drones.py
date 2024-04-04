@@ -13,8 +13,11 @@ def count_classes_from_labels(path = "/home/bee/bee-detection/data_appmais_lab/A
     drones = 0
     workers = 0
     drone_files = []
-
-    for label_filename in labels:
+    total_files = 0
+    for label_filename in tqdm(labels):
+        if label_filename == "classes.txt":
+            continue
+        total_files += 1
         with open(os.path.join(path, label_filename), "r") as f:
             lines = f.readlines()
             for line in lines:
@@ -25,6 +28,7 @@ def count_classes_from_labels(path = "/home/bee/bee-detection/data_appmais_lab/A
                elif class_index == "1":
                     workers += 1
 
+    print("total files: ", total_files)
     print("drones: ", drones)
     print("workers: ", workers)
     # print("drone files: ", drone_files)
@@ -95,11 +99,13 @@ def count_classes_from_predictions(model, video_filepath, destination_video_path
 
 
 if __name__ == '__main__':
-    count_classes_from_labels('./AppMAIS11s_labeled_data/labels')
+    count_classes_from_labels(
+        '/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data/labels'
+    )
     # model_path = os.data_path.abspath('./runs/detect/train7/weights/best11s.pt')
     # video_filepath = os.data_path.abspath('videos/AppMAIS11R@2022-09-01@14-45-00.mp4')
     # frame_ind = 120
-    # model = load_model_ultralytics(model_path)
-    # count_classes_from_predictions(model, video_filepath, "output18.mp4", True)
+    # ultralytics_model = load_model_ultralytics(model_path)
+    # count_classes_from_predictions(ultralytics_model, video_filepath, "output18.mp4", True)
 
 
