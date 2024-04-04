@@ -1,0 +1,421 @@
+Image filename:  video_AppMAIS11R@2022-10-06@15-05-00_frame_47.png
+n_predicted:  11
+a_predicted:  9
+b_predicted:  2
+p_predicted:  0.8181818181818182
+n_true:  10
+a_true:  3
+b_true:  7
+p_true:  0.3
+beta_binom_prob:  8.545073671931171e-16
+log likelihood beta binom:  -34.69600654973231
+
+Image filename:  video_AppMAIS11R@2022-09-23@14-45-00_frame_23.png
+n_predicted:  18
+a_predicted:  13
+b_predicted:  5
+p_predicted:  0.7222222222222222
+n_true:  3
+a_true:  2
+b_true:  1
+p_true:  0.6666666666666666
+beta_binom_prob:  0.06448887394140232
+log likelihood beta binom:  -2.7412625670922566
+
+Image filename:  video_AppMAIS11R@2022-06-06@12-10-00_frame_21.png
+n_predicted:  15
+a_predicted:  14
+b_predicted:  1
+p_predicted:  0.9333333333333333
+n_true:  13
+a_true:  12
+b_true:  1
+p_true:  0.9230769230769231
+beta_binom_prob:  0.06721447677577433
+log likelihood beta binom:  -2.6998666264434306
+
+Image filename:  video_AppMAIS11L@2023-05-17@13-35-00_frame_101.png
+n_predicted:  6
+a_predicted:  5
+b_predicted:  1
+p_predicted:  0.8333333333333334
+n_true:  12
+a_true:  6
+b_true:  6
+p_true:  0.5
+beta_binom_prob:  4.712193703223303e-06
+log likelihood beta binom:  -12.26535700396601
+
+Image filename:  video_AppMAIS11R@2022-10-13@13-25-00_frame_14.png
+n_predicted:  10
+a_predicted:  8
+b_predicted:  2
+p_predicted:  0.8
+n_true:  5
+a_true:  1
+b_true:  4
+p_true:  0.2
+beta_binom_prob:  3.346798852635522e-10
+log likelihood beta binom:  -21.817846607325542
+
+Image filename:  video_AppMAIS11R@2022-05-25@12-15-00_frame_193.png
+n_predicted:  4
+a_predicted:  3
+b_predicted:  1
+p_predicted:  0.75
+n_true:  5
+a_true:  4
+b_true:  1
+p_true:  0.8
+beta_binom_prob:  0.14769450253321278
+log likelihood beta binom:  -1.912609310630307
+
+Image filename:  video_AppMAIS11L@2023-07-10@13-50-00_frame_2.png
+n_predicted:  13
+a_predicted:  12
+b_predicted:  1
+p_predicted:  0.9230769230769231
+n_true:  26
+a_true:  24
+b_true:  2
+p_true:  0.9230769230769231
+beta_binom_prob:  0.05730443530577305
+log likelihood beta binom:  -2.8593772532697415
+
+Image filename:  video_AppMAIS11R@2022-10-15@14-15-00_frame_20.png
+n_predicted:  12
+a_predicted:  8
+b_predicted:  4
+p_predicted:  0.6666666666666666
+n_true:  15
+a_true:  14
+b_true:  1
+p_true:  0.9333333333333333
+beta_binom_prob:  4.603977902681948e-11
+log likelihood beta binom:  -23.80151533167762
+
+Image filename:  video_AppMAIS11L@2023-05-02@15-45-00_frame_175.png
+n_predicted:  3
+a_predicted:  2
+b_predicted:  1
+p_predicted:  0.6666666666666666
+n_true:  11
+a_true:  7
+b_true:  4
+p_true:  0.6363636363636364
+beta_binom_prob:  0.09642378331091674
+log likelihood beta binom:  -2.3390023929512047
+
+Image filename:  video_AppMAIS11L@2023-05-27@14-10-00_frame_129.png
+n_predicted:  6
+a_predicted:  5
+b_predicted:  1
+p_predicted:  0.8333333333333334
+n_true:  15
+a_true:  7
+b_true:  8
+p_true:  0.4666666666666667
+beta_binom_prob:  4.6652882189641e-08
+log likelihood beta binom:  -16.88053112828952
+
+Image filename:  video_AppMAIS11R@2022-10-10@15-35-00_frame_20.png
+n_predicted:  24
+a_predicted:  17
+b_predicted:  7
+p_predicted:  0.7083333333333334
+n_true:  7
+a_true:  6
+b_true:  1
+p_true:  0.8571428571428571
+beta_binom_prob:  0.0002630672311920333
+log likelihood beta binom:  -8.243100926545907
+
+Image filename:  video_AppMAIS11R@2022-10-04@12-15-00_frame_1.png
+n_predicted:  18
+a_predicted:  12
+b_predicted:  6
+p_predicted:  0.6666666666666666
+n_true:  15
+a_true:  12
+b_true:  3
+p_true:  0.8
+beta_binom_prob:  9.389867974097557e-05
+log likelihood beta binom:  -9.273294232115404
+
+Image filename:  video_AppMAIS11R@2022-10-04@13-20-00_frame_35.png
+n_predicted:  18
+a_predicted:  15
+b_predicted:  3
+p_predicted:  0.8333333333333334
+n_true:  14
+a_true:  10
+b_true:  4
+p_true:  0.7142857142857143
+beta_binom_prob:  0.0002028521323269527
+log likelihood beta binom:  -8.503033256526038
+
+Image filename:  video_AppMAIS11L@2023-07-14@13-15-00_frame_20.png
+n_predicted:  7
+a_predicted:  6
+b_predicted:  1
+p_predicted:  0.8571428571428571
+n_true:  15
+a_true:  11
+b_true:  4
+p_true:  0.7333333333333333
+beta_binom_prob:  0.004388921793189846
+log likelihood beta binom:  -5.428671687256887
+
+Image filename:  video_AppMAIS11R@2022-09-23@14-35-00_frame_22.png
+n_predicted:  18
+a_predicted:  9
+b_predicted:  9
+p_predicted:  0.5
+n_true:  6
+a_true:  5
+b_true:  1
+p_true:  0.8333333333333334
+beta_binom_prob:  6.604378180396461e-08
+log likelihood beta binom:  -16.532947954180287
+
+Image filename:  video_AppMAIS11L@2023-06-28@12-05-00_frame_10.png
+n_predicted:  7
+a_predicted:  6
+b_predicted:  1
+p_predicted:  0.8571428571428571
+n_true:  16
+a_true:  4
+b_true:  12
+p_true:  0.25
+beta_binom_prob:  1.1569207442273282e-21
+log likelihood beta binom:  -48.2085250081097
+
+Image filename:  video_AppMAIS11R@2022-10-08@15-10-00_frame_38.png
+n_predicted:  21
+a_predicted:  15
+b_predicted:  6
+p_predicted:  0.7142857142857143
+n_true:  15
+a_true:  9
+b_true:  6
+p_true:  0.6
+beta_binom_prob:  0.0003158110760495207
+log likelihood beta binom:  -8.06036638377006
+
+Image filename:  video_AppMAIS11L@2023-05-19@15-15-00_frame_196.png
+n_predicted:  16
+a_predicted:  15
+b_predicted:  1
+p_predicted:  0.9375
+n_true:  11
+a_true:  5
+b_true:  6
+p_true:  0.45454545454545453
+beta_binom_prob:  9.770333610390031e-26
+log likelihood beta binom:  -57.58786180596712
+
+Image filename:  video_AppMAIS11L@2023-05-18@14-40-00_frame_88.png
+n_predicted:  14
+a_predicted:  13
+b_predicted:  1
+p_predicted:  0.9285714285714286
+n_true:  6
+a_true:  5
+b_true:  1
+p_true:  0.8333333333333334
+beta_binom_prob:  0.010043606409765706
+log likelihood beta binom:  -4.6008190250569925
+
+Image filename:  video_AppMAIS11R@2022-05-29@12-20-00_frame_0.png
+n_predicted:  16
+a_predicted:  15
+b_predicted:  1
+p_predicted:  0.9375
+n_true:  13
+a_true:  12
+b_true:  1
+p_true:  0.9230769230769231
+beta_binom_prob:  0.05851978175362789
+log likelihood beta binom:  -2.838390432269364
+
+Image filename:  video_AppMAIS11L@2023-06-25@15-25-00_frame_34.png
+n_predicted:  30
+a_predicted:  26
+b_predicted:  4
+p_predicted:  0.8666666666666667
+n_true:  3
+a_true:  1
+b_true:  2
+p_true:  0.3333333333333333
+beta_binom_prob:  1.7920971851946705e-14
+log likelihood beta binom:  -31.65280475602492
+
+Image filename:  video_AppMAIS11L@2023-06-02@14-25-00_frame_181.png
+n_predicted:  5
+a_predicted:  4
+b_predicted:  1
+p_predicted:  0.8
+n_true:  5
+a_true:  3
+b_true:  2
+p_true:  0.6
+beta_binom_prob:  0.02939347480205062
+log likelihood beta binom:  -3.5269825747795327
+
+Image filename:  video_AppMAIS11R@2022-09-28@14-50-00_frame_55.png
+n_predicted:  17
+a_predicted:  13
+b_predicted:  4
+p_predicted:  0.7647058823529411
+n_true:  6
+a_true:  5
+b_true:  1
+p_true:  0.8333333333333334
+beta_binom_prob:  0.037194475623498174
+log likelihood beta binom:  -3.2915950334756303
+
+Image filename:  video_AppMAIS11R@2022-10-13@13-05-00_frame_17.png
+n_predicted:  5
+a_predicted:  4
+b_predicted:  1
+p_predicted:  0.8
+n_true:  6
+a_true:  5
+b_true:  1
+p_true:  0.8333333333333334
+beta_binom_prob:  0.13193029019828642
+log likelihood beta binom:  -2.0254816004505294
+
+Image filename:  video_AppMAIS11R@2022-10-09@14-50-00_frame_8.png
+n_predicted:  21
+a_predicted:  17
+b_predicted:  4
+p_predicted:  0.8095238095238095
+n_true:  5
+a_true:  3
+b_true:  2
+p_true:  0.6
+beta_binom_prob:  0.0001725371531046098
+log likelihood beta binom:  -8.664897964367292
+
+Image filename:  video_AppMAIS11R@2022-10-03@13-50-00_frame_25.png
+n_predicted:  8
+a_predicted:  5
+b_predicted:  3
+p_predicted:  0.625
+n_true:  4
+a_true:  3
+b_true:  1
+p_true:  0.75
+beta_binom_prob:  0.06602696755153353
+log likelihood beta binom:  -2.717692021144
+
+Image filename:  video_AppMAIS11R@2022-10-03@14-25-00_frame_37.png
+n_predicted:  30
+a_predicted:  19
+b_predicted:  11
+p_predicted:  0.6333333333333333
+n_true:  16
+a_true:  4
+b_true:  12
+p_true:  0.25
+beta_binom_prob:  3.4038989588272036e-34
+log likelihood beta binom:  -77.06297163459772
+
+Image filename:  video_AppMAIS11R@2022-10-08@15-40-00_frame_28.png
+n_predicted:  17
+a_predicted:  12
+b_predicted:  5
+p_predicted:  0.7058823529411765
+n_true:  10
+a_true:  5
+b_true:  5
+p_true:  0.5
+beta_binom_prob:  2.0280750866945978e-05
+log likelihood beta binom:  -10.805838354929364
+
+Image filename:  video_AppMAIS11L@2023-05-22@14-30-00_frame_52.png
+n_predicted:  8
+a_predicted:  7
+b_predicted:  1
+p_predicted:  0.875
+n_true:  11
+a_true:  10
+b_true:  1
+p_true:  0.9090909090909091
+beta_binom_prob:  0.08423076458444885
+log likelihood beta binom:  -2.4741950493548686
+
+Image filename:  video_AppMAIS11L@2023-05-23@14-50-00_frame_146.png
+n_predicted:  13
+a_predicted:  12
+b_predicted:  1
+p_predicted:  0.9230769230769231
+n_true:  10
+a_true:  4
+b_true:  6
+p_true:  0.4
+beta_binom_prob:  3.0914296068069958e-21
+log likelihood beta binom:  -47.225653313032964
+
+Image filename:  video_AppMAIS11R@2022-05-24@14-50-00_frame_151.png
+n_predicted:  7
+a_predicted:  6
+b_predicted:  1
+p_predicted:  0.8571428571428571
+n_true:  12
+a_true:  11
+b_true:  1
+p_true:  0.9166666666666666
+beta_binom_prob:  0.05729843953265893
+log likelihood beta binom:  -2.8594818889192055
+
+Image filename:  video_AppMAIS11R@2022-10-11@13-55-00_frame_15.png
+n_predicted:  4
+a_predicted:  2
+b_predicted:  2
+p_predicted:  0.5
+n_true:  15
+a_true:  5
+b_true:  10
+p_true:  0.3333333333333333
+beta_binom_prob:  0.013885143919796837
+log likelihood beta binom:  -4.276935793149484
+
+Image filename:  video_AppMAIS11R@2022-09-23@14-30-00_frame_28.png
+n_predicted:  19
+a_predicted:  16
+b_predicted:  3
+p_predicted:  0.8421052631578947
+n_true:  5
+a_true:  3
+b_true:  2
+p_true:  0.6
+beta_binom_prob:  3.935906167088194e-05
+log likelihood beta binom:  -10.142784325726943
+
+Image filename:  video_AppMAIS11L@2023-06-26@15-15-00_frame_23.png
+n_predicted:  22
+a_predicted:  21
+b_predicted:  1
+p_predicted:  0.9545454545454546
+n_true:  22
+a_true:  21
+b_true:  1
+p_true:  0.9545454545454546
+beta_binom_prob:  0.06120863712101734
+log likelihood beta binom:  -2.7934669699932897
+
+Image filename:  video_AppMAIS11R@2022-10-08@15-35-00_frame_16.png
+n_predicted:  13
+a_predicted:  10
+b_predicted:  3
+p_predicted:  0.7692307692307693
+n_true:  13
+a_true:  12
+b_true:  1
+p_true:  0.9230769230769231
+beta_binom_prob:  3.213217681951192e-05
+log likelihood beta binom:  -10.345652636757606
+
+The mean log likelihood is -14.60448055428226 from the model trained on the 11s data.
