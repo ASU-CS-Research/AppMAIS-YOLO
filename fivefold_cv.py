@@ -130,7 +130,7 @@ def compare_metrics(model_paths: List[str], val_set_paths: List[str]) -> List[fl
 
     plot([workers_true, drones_true], [workers_predicted, drones_predicted], "True Count",
          "Predicted Count",
-         f"Bee Count Predicted against True",
+         f"Bee Count Predicted vs. Actual",
          f"model: 5-fold cv, data: Test dataset",
          "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"],
          alpha=0.6)
