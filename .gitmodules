@@ -1,0 +1,3 @@
+[submodule "MongoUtils"]
+	path = MongoUtils
+	url = git@github.com:ASU-CS-Research/MongoUtils.git
