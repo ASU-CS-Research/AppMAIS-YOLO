@@ -46,7 +46,8 @@ class YOLOModel:
 
     def run_model_on_videos(self, start_date: datetime, end_date: datetime, hive_list: Optional[List[str]] = None,
                             start_time: Optional[time] = None, end_time: Optional[time] = None,
-                            upload_to_mongo: Optional[bool] = True, stride: Optional[int] = 1) -> (
+                            upload_to_mongo: Optional[bool] = True, stride: Optional[int] = 1,
+                            exclude_months: Optional[List[int]] = None) -> (
             pd.DataFrame):
         """
         Retrieves random frames from all videos listed in the date range for the given hives, and runs the YOLO model
@@ -64,6 +65,8 @@ class YOLOModel:
             upload_to_mongo (Optional[bool]): Whether to upload the results to the database. Default is True.
             stride (Optional[int]): Every ``stride`` videos will be returned. Default is 1, which means that every video
               that matches the other criteria will be returned.
+            exclude_months (Optional[List[int]]): A list of months to exclude from the query. If None, all months will
+                be used.
 
         Returns:
             pd.DataFrame: A DataFrame with the number of drones and workers detected in each frame. The columns are:
@@ -84,7 +87,7 @@ class YOLOModel:
             hive_name, population_marker = self.get_population_marker_from_hive_name(hive)
             video_filepaths = self.get_video_filepaths_for_hive(
                 hivename=hive_name, start_date=start_date, end_date=end_date, start_time=start_time, end_time=end_time,
-                stride=stride
+                stride=stride, exclude_months=exclude_months
             )
             already_processed_frames_for_hive, video_filepaths = self._find_already_processed_frames(
                 video_filepaths=video_filepaths
@@ -137,7 +140,7 @@ class YOLOModel:
     @staticmethod
     def graph_model_results_for_hive(results: pd.DataFrame, hive_names: List[str],
                                      alpha: Optional[float]=0.7, figsize: Optional[Tuple[int, int]] = (20, 20),
-                                     font_size: Optional[int] = 22, markersize: Optional[int] = 10) -> None:
+                                     font_size: Optional[int] = 22, markersize: Optional[int] = 10):
         """
         Graphs the number of drones and workers detected in each frame for the given hive.
 
@@ -186,7 +189,7 @@ class YOLOModel:
             population_marker = 'A'
         return hive_name_without_population_marker, population_marker
 
-    def _find_already_processed_frames(self, video_filepaths):
+    def _find_already_processed_frames(self, video_filepaths) -> Tuple[List[dict], List[str]]:
         """
         Finds the frames that have already been processed for the given set of video filepaths. Uses
         ``self._desired_frame_ind`` to find the frame number to check for.
@@ -204,7 +207,12 @@ class YOLOModel:
         results = []
         processed_frames_cursor = self._drone_worker_count_collection.find(query)
         for document in processed_frames_cursor:
-            video_filepaths.remove(document["FilePath"])
+            try:
+                video_filepaths.remove(document["FilePath"])
+            except ValueError:
+                logger.warning(f"Could not remove {document['FilePath']} from video_filepaths. Possibly a duplicate "
+                               f"record? Skipping...")
+                continue
             result = {
                 "HiveName": document["HiveName"],
                 "PopulationMarker": document["PopulationMarker"],
@@ -222,7 +230,8 @@ class YOLOModel:
     def get_video_filepaths_for_hive(self, hivename: str, num_videos: Optional[int] = None,
                                      start_date: Optional[datetime] = None, end_date: Optional[datetime] = None,
                                      start_time: Optional[time] = None, end_time: Optional[time] = None,
-                                     stride: Optional[int] = 1) -> List[str]:
+                                     stride: Optional[int] = 1, exclude_months: Optional[List[int]] = None) -> (
+            List[str]):
         """
         Returns a list of filepaths for the videos associated with the given hive. These are converted using the /mnt/
         directory structure on lambda.
@@ -241,6 +250,8 @@ class YOLOModel:
               to filter the videos, such as an end time of 4pm means that any day's videos after 4pm will be ignored.
             stride (Optional[int]): Every ``stride`` videos will be returned. Default is 1, which means that every video
               that matches the other criteria will be returned.
+            exclude_months (Optional[List[int]]): A list of months to exclude from the query. If None, all months will
+              be used.
 
         Returns:
             List[str]: A list of filepaths for the videos associated with the given hive.
@@ -263,6 +274,10 @@ class YOLOModel:
                 if start_time is not None and video_time < start_time:
                     continue
                 if end_time is not None and video_time > end_time:
+                    continue
+            if exclude_months is not None:
+                video_month = video_document["TimeStamp"].month
+                if video_month in exclude_months:
                     continue
             i += 1
             if i % stride != 0:
@@ -384,7 +399,7 @@ if __name__ == '__main__':
     mongo_client = MongoHelper.connect_to_remote_client(username=auth["username"], password=auth["password"])
     pretrained_weights_path = os.path.abspath("trained_models/final_model.pt")
     yolo_model = YOLOModel(pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client)
-    start_date = datetime(2023, 8, 1)
+    start_date = datetime(2022, 5, 1)
     end_date = datetime(2023, 11, 1)
     start_time = time(15, 0, 0)
     end_time = time(15, 0, 0)
@@ -392,7 +407,8 @@ if __name__ == '__main__':
     # hive_list = ["AppMAIS11L", "AppMAIS11R", "AppMAIS6L", "AppMAIS6R", "AppMAIS12L", "AppMAIS12R"]
     # hive_list = ["AppMAIS8L", "AppMAIS8R", "AppMAIS13L", "AppMAIS13R"]
     results = yolo_model.run_model_on_videos(
-        start_date=start_date, end_date=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time
+        start_date=start_date, end_date=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
+        upload_to_mongo=True, stride=1, exclude_months=[12, 1, 2, 3]
     )
     # graph the results
     YOLOModel.graph_model_results_for_hive(
