@@ -86,7 +86,7 @@ class YOLOModel:
         for hive in hive_list:
             hive_name, population_marker = self.get_population_marker_from_hive_name(hive)
             video_filepaths = self.get_video_filepaths_for_hive(
-                hivename=hive_name, start_date=start_date, end_date=end_date, start_time=start_time, end_time=end_time,
+                hivename=hive, start_date=start_date, end_date=end_date, start_time=start_time, end_time=end_time,
                 stride=stride, exclude_months=exclude_months
             )
             already_processed_frames_for_hive, video_filepaths = self._find_already_processed_frames(
