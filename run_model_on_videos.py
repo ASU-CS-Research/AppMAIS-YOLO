@@ -30,7 +30,7 @@ class YOLOModel:
     """
     def __init__(self, pretrained_weights_path: str, mongo_client: MongoClient,
                  confidence_threshold: Optional[float] = 0.64,
-                 batch_size: Optional[int] = 64, video_length_frames: Optional[int] = 1794):
+                 batch_size: Optional[int] = 64, desired_frame_ind: Optional[int] = 897):
         logger.info(f"Initializing YOLO model with pretrained weights at {pretrained_weights_path}.")
         self._model = ultralytics.YOLO(model=pretrained_weights_path)
         self._mongo_client = mongo_client
@@ -40,8 +40,7 @@ class YOLOModel:
         self._drone_worker_count_collection = self._bee_db.DroneWorkerCount
         self._confidence_threshold = confidence_threshold
         self._batch_size = batch_size
-        self._video_length_frames = video_length_frames
-        self._desired_frame_ind = self._video_length_frames // 2
+        self._desired_frame_ind = desired_frame_ind
 
 
     def run_model_on_videos(self, start_date: datetime, end_date: datetime, hive_list: Optional[List[str]] = None,
@@ -89,7 +88,7 @@ class YOLOModel:
                 hivename=hive, start_date=start_date, end_date=end_date, start_time=start_time, end_time=end_time,
                 stride=stride, exclude_months=exclude_months
             )
-            already_processed_frames_for_hive, video_filepaths = self._find_already_processed_frames(
+            already_processed_frames_for_hive, video_filepaths = self._find_previously_processed_frames(
                 video_filepaths=video_filepaths
             )
             already_processed_frames += already_processed_frames_for_hive
@@ -98,7 +97,7 @@ class YOLOModel:
             for video_filepath in video_filepaths:
                 date_str, time_str = video_filepath.split("@")[1], video_filepath.split("@")[2].split('.')[0]
                 timestamp = datetime.strptime(f"{date_str}@{time_str}", "%Y-%m-%d@%H-%M-%S")
-                frame = self._retrieve_middle_frame_from_video(video_filepath, self._desired_frame_ind)
+                frame = self._retrieve_frame_from_video(video_filepath, self._desired_frame_ind)
                 if frame is None:
                     continue
                 frame_related_data.append({
@@ -138,15 +137,16 @@ class YOLOModel:
 
 
     @staticmethod
-    def graph_model_results_for_hive(results: pd.DataFrame, hive_names: List[str],
-                                     alpha: Optional[float]=0.7, figsize: Optional[Tuple[int, int]] = (20, 20),
-                                     font_size: Optional[int] = 22, markersize: Optional[int] = 10):
+    def plot_model_results(results: pd.DataFrame, hive_names: List[str],
+                           alpha: Optional[float]=0.7, figsize: Optional[Tuple[int, int]] = (20, 20),
+                           font_size: Optional[int] = 22, markersize: Optional[int] = 10):
         """
-        Graphs the number of drones and workers detected in each frame for the given hive.
+        Plots the number of drones and workers detected in each frame.
 
         Args:
             results (pd.DataFrame): The DataFrame containing the results of the model.
-            hive_names (List[str]): The names of the hive to graph the results for.
+            hive_names (List[str]): The names of the hives to plot. These names should include the population marker
+              (for the time being).
             alpha (Optional[float]): The alpha value for the scatter plot. Default is 0.7.
         """
         # Make sure there is at least one entry in the DataFrame
@@ -171,7 +171,8 @@ class YOLOModel:
         ax.set_ylabel("Drone to Worker Ratio")
         ax.set_title(f"Number of Drones and Workers Detected")
         # Add a legend on the outside of the plot
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ncols = 1 if len(hive_names) < 10 else 2
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
         plt.tight_layout()
         plt.show()
 
@@ -189,7 +190,7 @@ class YOLOModel:
             population_marker = 'A'
         return hive_name_without_population_marker, population_marker
 
-    def _find_already_processed_frames(self, video_filepaths) -> Tuple[List[dict], List[str]]:
+    def _find_previously_processed_frames(self, video_filepaths) -> Tuple[List[dict], List[str]]:
         """
         Finds the frames that have already been processed for the given set of video filepaths. Uses
         ``self._desired_frame_ind`` to find the frame number to check for.
@@ -330,7 +331,7 @@ class YOLOModel:
         return active_hives
 
     @staticmethod
-    def _retrieve_middle_frame_from_video(video_filepath: str, frame_number: int) -> Optional[np.ndarray]:
+    def _retrieve_frame_from_video(video_filepath: str, frame_number: int) -> Optional[np.ndarray]:
         """
         Retrieves a random frame from the video at the given file path. The frame number is also returned.
         The function assumes that the video may be h264 and as such loops through the video to find the
@@ -398,7 +399,11 @@ if __name__ == '__main__':
         auth = json.load(f)
     mongo_client = MongoHelper.connect_to_remote_client(username=auth["username"], password=auth["password"])
     pretrained_weights_path = os.path.abspath("trained_models/final_model.pt")
-    yolo_model = YOLOModel(pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client)
+    desired_frame_index = 1794 // 2 # Halfway through the video
+    yolo_model = YOLOModel(
+        pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
+        batch_size=64, desired_frame_ind=desired_frame_index
+    )
     start_date = datetime(2022, 5, 1)
     end_date = datetime(2023, 11, 1)
     start_time = time(15, 0, 0)
@@ -411,7 +416,7 @@ if __name__ == '__main__':
         upload_to_mongo=True, stride=1, exclude_months=[12, 1, 2, 3]
     )
     # graph the results
-    YOLOModel.graph_model_results_for_hive(
+    YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11
     )
 
