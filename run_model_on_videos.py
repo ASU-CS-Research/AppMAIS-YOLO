@@ -139,7 +139,9 @@ class YOLOModel:
     @staticmethod
     def plot_model_results(results: pd.DataFrame, hive_names: List[str],
                            alpha: Optional[float]=0.7, figsize: Optional[Tuple[int, int]] = (20, 20),
-                           font_size: Optional[int] = 22, markersize: Optional[int] = 10):
+                           font_size: Optional[int] = 22, markersize: Optional[int] = 10, tickwidth: Optional[int] = 3,
+                           metric: Optional[str] = "DroneToWorkerRatio", ylabel: Optional[str] = "Drone to Worker Ratio",
+                           plot_title: Optional[str] = "Number of Drones and Workers Detected"):
         """
         Plots the number of drones and workers detected in each frame.
 
@@ -148,6 +150,10 @@ class YOLOModel:
             hive_names (List[str]): The names of the hives to plot. These names should include the population marker
               (for the time being).
             alpha (Optional[float]): The alpha value for the scatter plot. Default is 0.7.
+            figsize (Optional[Tuple[int, int]]): The size of the figure. Default is (20, 20).
+            font_size (Optional[int]): The font size for the plot. Default is 22.
+            markersize (Optional[int]): The marker size for the plot. Default is 10.
+            tickwidth (Optional[int]): The size of the ticks on the plot. Default is 22.
         """
         # Make sure there is at least one entry in the DataFrame
         if results.shape[0] == 0:
@@ -157,19 +163,21 @@ class YOLOModel:
         plt.rcParams.update({'font.size': font_size})
         # increase point size a little as well
         plt.rcParams.update({'lines.markersize': markersize})
+        # and the tick size too
         fig, ax = plt.subplots(figsize=figsize)
+        plt.tick_params(width=tickwidth, length=tickwidth * 3)
         for hive_name in hive_names:
             hive_name, population_marker = YOLOModel.get_population_marker_from_hive_name(hive_name)
             hive_results = results[results["HiveName"] == hive_name]
             hive_results = hive_results[hive_results["PopulationMarker"] == population_marker]
             hive_label = f"{hive_name}{population_marker}" if population_marker != 'A' else hive_name
-            ax.scatter(hive_results["TimeStamp"], hive_results["DroneToWorkerRatio"],
+            ax.scatter(hive_results["TimeStamp"], hive_results[metric],
                        label=hive_label, alpha=alpha)
         ax.set_xlabel("Time Stamp")
         # Rotate the x-axis labels for better readability
         plt.xticks(rotation=45)
-        ax.set_ylabel("Drone to Worker Ratio")
-        ax.set_title(f"Number of Drones and Workers Detected")
+        ax.set_ylabel(ylabel)
+        ax.set_title(plot_title)
         # Add a legend on the outside of the plot
         ncols = 1 if len(hive_names) < 10 else 2
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
@@ -404,19 +412,33 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2022, 5, 1)
-    end_date = datetime(2023, 11, 1)
-    start_time = time(15, 0, 0)
-    end_time = time(15, 0, 0)
-    hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+    # start_date = datetime(2022, 9, 1)
+    # end_date = datetime(2024, 5, 28)
+    # start_time = time(15, 0, 0)
+    # end_time = time(15, 0, 0)
+    # start_date = datetime(2022, 9, 1)
+    # end_date = datetime(2022, 11, 1)
+    # start_time = time(14, 0, 0)
+    # end_time = time(16, 0, 0)
+    start_date = datetime(2022, 6, 5)
+    end_date = datetime(2022, 6, 20)
+    start_time = time(13, 0, 0)
+    end_time = time(16, 0, 0)
+    # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
     # hive_list = ["AppMAIS11L", "AppMAIS11R", "AppMAIS6L", "AppMAIS6R", "AppMAIS12L", "AppMAIS12R"]
-    # hive_list = ["AppMAIS8L", "AppMAIS8R", "AppMAIS13L", "AppMAIS13R"]
+    # hive_list = ["AppMAIS6L", "AppMAIS6R"]
+    # hive_list = ["AppMAIS11R", "AppMAIS11L"]
+    # hive_list = ["AppMAIS12L", "AppMAIS12R"]
+    hive_list = ["AppMAIS1L", "AppMAIS1R"]
     results = yolo_model.run_model_on_videos(
         start_date=start_date, end_date=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
         upload_to_mongo=True, stride=1, exclude_months=[12, 1, 2, 3]
     )
     # graph the results
     YOLOModel.plot_model_results(
-        results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11
+        results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+        # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+        metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
+        # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
 
