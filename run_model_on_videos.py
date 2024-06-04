@@ -43,7 +43,7 @@ class YOLOModel:
         self._desired_frame_ind = desired_frame_ind
 
 
-    def run_model_on_videos(self, start_date: datetime, end_date: datetime, hive_list: Optional[List[str]] = None,
+    def run_model_on_videos(self, start_datetime: datetime, end_datetime: datetime, hive_list: Optional[List[str]] = None,
                             start_time: Optional[time] = None, end_time: Optional[time] = None,
                             upload_to_mongo: Optional[bool] = True, stride: Optional[int] = 1,
                             exclude_months: Optional[List[int]] = None) -> (
@@ -52,8 +52,8 @@ class YOLOModel:
         Retrieves random frames from all videos listed in the date range for the given hives, and runs the YOLO model
         on those frames. Number of drones and workers are returned.
         Args:
-            start_date (datetime): The start date for the videos.
-            end_date (datetime): The end date for the videos.
+            start_datetime (datetime): The start date for the videos.
+            end_datetime (datetime): The end date for the videos.
             hive_list (Optional[List[str]]): A list of hives to run the model on. If None, all active hives in the date
               range will be used.
             start_time (Optional[time]): The start time for the videos. If None, all times will be used. This is used
@@ -78,14 +78,14 @@ class YOLOModel:
               - DroneToWorkerRatio: The ratio of drones to workers detected in the frame.
         """
         if hive_list is None:
-            hive_list = self.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-        logger.info(f"Running YOLO model on videos for hives {hive_list} between {start_date} and {end_date}.")
+            hive_list = self.get_active_hives_in_time_frame(start_date=start_datetime, end_date=end_datetime)
+        logger.info(f"Running YOLO model on videos for hives {hive_list} between {start_datetime} and {end_datetime}.")
         results = []
         already_processed_frames = []
         for hive in hive_list:
             hive_name, population_marker = self.get_population_marker_from_hive_name(hive)
             video_filepaths = self.get_video_filepaths_for_hive(
-                hivename=hive, start_date=start_date, end_date=end_date, start_time=start_time, end_time=end_time,
+                hivename=hive, start_date=start_datetime, end_date=end_datetime, start_time=start_time, end_time=end_time,
                 stride=stride, exclude_months=exclude_months
             )
             already_processed_frames_for_hive, video_filepaths = self._find_previously_processed_frames(
@@ -154,6 +154,10 @@ class YOLOModel:
             font_size (Optional[int]): The font size for the plot. Default is 22.
             markersize (Optional[int]): The marker size for the plot. Default is 10.
             tickwidth (Optional[int]): The size of the ticks on the plot. Default is 22.
+            metric (Optional[str]): The metric to plot. Default is "DroneToWorkerRatio".
+            ylabel (Optional[str]): The y-axis label of the plot. Default is "Drone to Worker Ratio". X axis is always
+              the time stamp.
+            plot_title (Optional[str]): The title of the plot. Default is "Number of Drones and Workers Detected".
         """
         # Make sure there is at least one entry in the DataFrame
         if results.shape[0] == 0:
@@ -209,6 +213,11 @@ class YOLOModel:
             Tuple[List[dict], List[str]]: A list of dictionaries containing the processed frame data, and a list of
               filepaths from ``video_filepaths`` that were not found in the database.
         """
+        # First have to check for filepaths with either extension since the database may have been updated
+        original_filepaths = video_filepaths
+        video_filepaths_with_h264_extension = [filepath.replace("h264", "mp4") for filepath in video_filepaths]
+        video_filepaths_with_mp4_extension = [filepath.replace("mp4", "h264") for filepath in video_filepaths]
+        video_filepaths = video_filepaths_with_h264_extension + video_filepaths_with_mp4_extension
         query = {
             "FrameNumber": self._desired_frame_ind,
             "FilePath": { "$in": video_filepaths }
@@ -217,7 +226,9 @@ class YOLOModel:
         processed_frames_cursor = self._drone_worker_count_collection.find(query)
         for document in processed_frames_cursor:
             try:
-                video_filepaths.remove(document["FilePath"])
+                # Have to remove both copies of the filepath from the list
+                video_filepaths.remove(document["FilePath"].replace("h264", "mp4"))
+                video_filepaths.remove(document["FilePath"].replace("mp4", "h264"))
             except ValueError:
                 logger.warning(f"Could not remove {document['FilePath']} from video_filepaths. Possibly a duplicate "
                                f"record? Skipping...")
@@ -233,6 +244,8 @@ class YOLOModel:
                 "FilePath": document["FilePath"]
             }
             results.append(result)
+        # Lastly, have to remove the non-original filepaths from the list:
+        video_filepaths = [filepath for filepath in video_filepaths if filepath in original_filepaths]
         return results, video_filepaths
 
 
@@ -353,10 +366,10 @@ class YOLOModel:
         """
         cap = cv2.VideoCapture(video_filepath)
         logger.debug(f'Retrieving frame {frame_number} from video at {video_filepath}.')
-        i = 0
         frame = None
         file_extension = video_filepath.split('.')[-1]
         if file_extension == 'h264':
+            i = 1  # Using 1-indexing so that the frame matches the frame index for mp4 videos
             while i < frame_number:
                 ret, frame = cap.read()
                 if frame is None:
@@ -412,33 +425,32 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    # start_date = datetime(2022, 9, 1)
+    # start_date = datetime(2022, 5, 1)
     # end_date = datetime(2024, 5, 28)
-    # start_time = time(15, 0, 0)
-    # end_time = time(15, 0, 0)
-    # start_date = datetime(2022, 9, 1)
-    # end_date = datetime(2022, 11, 1)
-    # start_time = time(14, 0, 0)
-    # end_time = time(16, 0, 0)
-    start_date = datetime(2022, 6, 5)
-    end_date = datetime(2022, 6, 20)
-    start_time = time(13, 0, 0)
+    # start_time = end_time = time(15, 0, 0)
+    start_date = datetime(2022, 9, 1)
+    end_date = datetime(2022, 11, 1)
+    start_time = time(14, 0, 0)
     end_time = time(16, 0, 0)
+    # start_date = datetime(2022, 6, 5)
+    # end_date = datetime(2022, 6, 20)
+    # start_time = time(13, 0, 0)
+    # end_time = time(16, 0, 0)
     # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    # hive_list = ["AppMAIS11L", "AppMAIS11R", "AppMAIS6L", "AppMAIS6R", "AppMAIS12L", "AppMAIS12R"]
+    hive_list = ["AppMAIS11R", "AppMAIS11L"]
     # hive_list = ["AppMAIS6L", "AppMAIS6R"]
     # hive_list = ["AppMAIS11R", "AppMAIS11L"]
     # hive_list = ["AppMAIS12L", "AppMAIS12R"]
-    hive_list = ["AppMAIS1L", "AppMAIS1R"]
+    # hive_list = ["AppMAIS1L", "AppMAIS1R"]
     results = yolo_model.run_model_on_videos(
-        start_date=start_date, end_date=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
+        start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
         upload_to_mongo=True, stride=1, exclude_months=[12, 1, 2, 3]
     )
     # graph the results
     YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
-        metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
+        metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+        # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
         # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
 
