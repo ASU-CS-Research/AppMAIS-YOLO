@@ -2,7 +2,7 @@ from typing import Optional, List, Tuple
 
 import ultralytics
 import os
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from MongoUtils.mongo_helper import MongoHelper
 from pymongo import MongoClient
 import json
@@ -187,6 +187,56 @@ class YOLOModel:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
         plt.tight_layout()
         plt.show()
+
+    def find_consecutive_ratios_over(self, drone_to_worker_threshold: float, start_date: datetime, end_date: datetime,
+                                     consecutive_days_threshold: int) -> List[Tuple[str, datetime, datetime]]:
+        """
+        Finds the consecutive days where the drone to worker ratio is over the given threshold.
+        Args:
+            drone_to_worker_threshold (float): The threshold for the drone to worker ratio.
+            start_date (datetime):
+            end_date (datetime):
+            consecutive_days_threshold (int): Number of consecutive days to look for.
+
+        Returns:
+            List[Tuple[str, datetime, datetime]]: A list of tuples containing the hive name, the start date of the
+              consecutive days, and the end date of the consecutive days.
+        """
+        logger.info(f'Finding all sets of {consecutive_days_threshold} consecutive days where the drone to worker ratio is over '
+                    f'{drone_to_worker_threshold}.')
+        hive_list = self.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+        results = []
+        for hive in hive_list:
+            hive_name, population_marker = self.get_population_marker_from_hive_name(hive)
+            hive_results = self._drone_worker_count_collection.find({
+                "HiveName": hive_name,
+                "PopulationMarker": population_marker,
+                "TimeStamp": { "$gte": start_date, "$lte": end_date },
+                "DroneToWorkerRatio": { "$gte": drone_to_worker_threshold }
+            })
+            hive_results_list = []
+            for result in hive_results:
+                hive_results_list.append(result)
+            # sort by timestamp
+            hive_results_list = sorted(hive_results_list, key=lambda x: x["TimeStamp"])
+            consecutive_days = 0
+            skipped_entries = 0
+            for i in range(len(hive_results_list) - 1):
+                # if the videos are one day apart (ignoring time, just date)
+                if (hive_results_list[i + 1]["TimeStamp"] - hive_results_list[i]["TimeStamp"]).days == 1:
+                    consecutive_days += 1
+                # otherwise, if the videos are the same day
+                elif (hive_results_list[i + 1]["TimeStamp"] - hive_results_list[i]["TimeStamp"]).days == 0:
+                    skipped_entries += 1
+                    continue
+                else:
+                    consecutive_days = 0
+                    skipped_entries = 0
+                if consecutive_days == consecutive_days_threshold:
+                    results.append((hive_name, hive_results_list[i - (consecutive_days + skipped_entries)]["TimeStamp"],
+                                    hive_results_list[i]["TimeStamp"]))
+        return results
+
 
     """
     The following methods may not be best for the model class, but leaving them here as they're currently needed.
@@ -425,32 +475,29 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
+    start_date = datetime(2022, 5, 1)
+    end_date = datetime(2024, 5, 28)
+    start_time = end_time = time(15, 0, 0)
     # start_date = datetime(2022, 5, 1)
-    # end_date = datetime(2024, 5, 28)
-    # start_time = end_time = time(15, 0, 0)
-    start_date = datetime(2022, 9, 1)
-    end_date = datetime(2022, 11, 1)
-    start_time = time(14, 0, 0)
-    end_time = time(16, 0, 0)
-    # start_date = datetime(2022, 6, 5)
-    # end_date = datetime(2022, 6, 20)
-    # start_time = time(13, 0, 0)
+    # end_date = datetime(2024, 5, 30)
+    # start_time = time(14, 0, 0)
     # end_time = time(16, 0, 0)
     # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
     hive_list = ["AppMAIS11R", "AppMAIS11L"]
-    # hive_list = ["AppMAIS6L", "AppMAIS6R"]
-    # hive_list = ["AppMAIS11R", "AppMAIS11L"]
-    # hive_list = ["AppMAIS12L", "AppMAIS12R"]
-    # hive_list = ["AppMAIS1L", "AppMAIS1R"]
+    results = yolo_model.find_consecutive_ratios_over(
+        drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=5
+    )
+    print(results)
+    exit(0)
     results = yolo_model.run_model_on_videos(
         start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
-        upload_to_mongo=True, stride=1, exclude_months=[12, 1, 2, 3]
+        upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
     )
     # graph the results
     YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+        # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
         # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
-        # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
+        metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
 
