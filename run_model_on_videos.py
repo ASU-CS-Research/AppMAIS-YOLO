@@ -189,9 +189,10 @@ class YOLOModel:
         plt.show()
 
     def find_consecutive_ratios_over(self, drone_to_worker_threshold: float, start_date: datetime, end_date: datetime,
-                                     consecutive_days_threshold: int) -> List[Tuple[str, datetime, datetime]]:
+                                     consecutive_days_threshold: int, hive_list: Optional[List[str]] = None) -> (
+            List[Tuple[str, datetime, datetime]]):
         """
-        Finds the consecutive days where the drone to worker ratio is over the given threshold.
+        Finds the consecutive days when the drone to worker ratio is over the given threshold.
         Args:
             drone_to_worker_threshold (float): The threshold for the drone to worker ratio.
             start_date (datetime):
@@ -204,7 +205,8 @@ class YOLOModel:
         """
         logger.info(f'Finding all sets of {consecutive_days_threshold} consecutive days where the drone to worker ratio is over '
                     f'{drone_to_worker_threshold}.')
-        hive_list = self.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+        if hive_list is None:
+            hive_list = self.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
         results = []
         for hive in hive_list:
             hive_name, population_marker = self.get_population_marker_from_hive_name(hive)
@@ -221,20 +223,35 @@ class YOLOModel:
             hive_results_list = sorted(hive_results_list, key=lambda x: x["TimeStamp"])
             consecutive_days = 0
             skipped_entries = 0
+            met_threshold = False
             for i in range(len(hive_results_list) - 1):
                 # if the videos are one day apart (ignoring time, just date)
-                if (hive_results_list[i + 1]["TimeStamp"] - hive_results_list[i]["TimeStamp"]).days == 1:
+                if hive_results_list[i + 1]["TimeStamp"].day - hive_results_list[i]["TimeStamp"].day == 1:
                     consecutive_days += 1
                 # otherwise, if the videos are the same day
-                elif (hive_results_list[i + 1]["TimeStamp"] - hive_results_list[i]["TimeStamp"]).days == 0:
+                elif hive_results_list[i + 1]["TimeStamp"].day - hive_results_list[i]["TimeStamp"].day == 0:
                     skipped_entries += 1
                     continue
                 else:
+                    if met_threshold:
+                        results.append(
+                            (hive_name, hive_results_list[i - (consecutive_days + skipped_entries)]["TimeStamp"],
+                             hive_results_list[i]["TimeStamp"])
+                        )
+                        met_threshold = False
                     consecutive_days = 0
                     skipped_entries = 0
                 if consecutive_days == consecutive_days_threshold:
-                    results.append((hive_name, hive_results_list[i - (consecutive_days + skipped_entries)]["TimeStamp"],
-                                    hive_results_list[i]["TimeStamp"]))
+                    # We've met the threshold for the number of consecutive days we're looking for, but there may be
+                    # more consecutive days after this one.
+                    met_threshold = True
+            # If we're at the end of the list, we need to check if we've met the threshold (if met_threshold is
+            # still True, that means we haven't added the last set of consecutive days to the results list).
+            if met_threshold:
+                results.append(
+                    (hive_name, hive_results_list[len(hive_results_list) - (consecutive_days + skipped_entries + 1)]["TimeStamp"],
+                     hive_results_list[len(hive_results_list) - 1]["TimeStamp"])
+                )
         return results
 
 
@@ -475,20 +492,21 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2022, 5, 1)
-    end_date = datetime(2024, 5, 28)
-    start_time = end_time = time(15, 0, 0)
+    start_date = datetime(2023, 4, 1)
+    end_date = datetime(2023, 5, 28)
+    # start_time = end_time = time(15, 0, 0)
     # start_date = datetime(2022, 5, 1)
     # end_date = datetime(2024, 5, 30)
-    # start_time = time(14, 0, 0)
-    # end_time = time(16, 0, 0)
-    # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    hive_list = ["AppMAIS11R", "AppMAIS11L"]
-    results = yolo_model.find_consecutive_ratios_over(
-        drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=5
-    )
-    print(results)
-    exit(0)
+    start_time = time(15, 0, 0)
+    end_time = time(15, 30, 0)
+    hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+    # hive_list = ["AppMAIS11R", "AppMAIS11L"]
+    # hive_list = ["AppMAIS13L", "AppMAIS13R"]
+    # results = yolo_model.find_consecutive_ratios_over(
+    #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=5
+    # )
+    # print(results)
+    # exit(0)
     results = yolo_model.run_model_on_videos(
         start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
         upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
@@ -496,8 +514,8 @@ if __name__ == '__main__':
     # graph the results
     YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+        metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
         # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
-        metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
+        # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
 
