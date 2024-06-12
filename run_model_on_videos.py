@@ -141,7 +141,8 @@ class YOLOModel:
                            alpha: Optional[float]=0.7, figsize: Optional[Tuple[int, int]] = (20, 20),
                            font_size: Optional[int] = 22, markersize: Optional[int] = 10, tickwidth: Optional[int] = 3,
                            metric: Optional[str] = "DroneToWorkerRatio", ylabel: Optional[str] = "Drone to Worker Ratio",
-                           plot_title: Optional[str] = "Number of Drones and Workers Detected"):
+                           plot_title: Optional[str] = "Number of Drones and Workers Detected",
+                           plot_moving_average: Optional[bool] = False, moving_average_window: Optional[int] = 5):
         """
         Plots the number of drones and workers detected in each frame.
 
@@ -158,18 +159,23 @@ class YOLOModel:
             ylabel (Optional[str]): The y-axis label of the plot. Default is "Drone to Worker Ratio". X axis is always
               the time stamp.
             plot_title (Optional[str]): The title of the plot. Default is "Number of Drones and Workers Detected".
+            plot_moving_average (Optional[bool]): Whether to plot the moving average. Default is False.
+            moving_average_window (Optional[int]): The window size for the moving average. Default is 5, ignored
+              if plot_moving_average is False.
         """
         # Make sure there is at least one entry in the DataFrame
         if results.shape[0] == 0:
             logger.warning("No results found in the DataFrame. Exiting.")
             return
-        # Set the text size pretty large for readability
+        # Set the plot parameters
         plt.rcParams.update({'font.size': font_size})
-        # increase point size a little as well
         plt.rcParams.update({'lines.markersize': markersize})
-        # and the tick size too
         fig, ax = plt.subplots(figsize=figsize)
         plt.tick_params(width=tickwidth, length=tickwidth * 3)
+        plt.rcParams['lines.linewidth'] = tickwidth
+
+        # sort the results by timestamp
+        results = results.sort_values(by="TimeStamp")
         for hive_name in hive_names:
             hive_name, population_marker = YOLOModel.get_population_marker_from_hive_name(hive_name)
             hive_results = results[results["HiveName"] == hive_name]
@@ -177,6 +183,10 @@ class YOLOModel:
             hive_label = f"{hive_name}{population_marker}" if population_marker != 'A' else hive_name
             ax.scatter(hive_results["TimeStamp"], hive_results[metric],
                        label=hive_label, alpha=alpha)
+            if plot_moving_average:
+                moving_average = hive_results[metric].rolling(window=moving_average_window).mean()
+                ax.plot(hive_results["TimeStamp"], moving_average, label=f"{hive_label} Moving Average",
+                        linestyle='dashed')
         ax.set_xlabel("Time Stamp")
         # Rotate the x-axis labels for better readability
         plt.xticks(rotation=45)
@@ -492,16 +502,17 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2023, 4, 1)
-    end_date = datetime(2023, 5, 28)
+    start_date = datetime(2023, 9, 10)
+    end_date = datetime(2023, 9, 30)
     # start_time = end_time = time(15, 0, 0)
     # start_date = datetime(2022, 5, 1)
     # end_date = datetime(2024, 5, 30)
-    start_time = time(15, 0, 0)
-    end_time = time(15, 30, 0)
-    hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+    start_time = time(14, 0, 0)
+    end_time = time(16, 0, 0)
+    # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
     # hive_list = ["AppMAIS11R", "AppMAIS11L"]
-    # hive_list = ["AppMAIS13L", "AppMAIS13R"]
+    # hive_list = ["AppMAIS13R", "AppMAIS13L"]
+    hive_list = ["AppMAIS13L", "AppMAIS13R"]
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=5
     # )
@@ -514,6 +525,7 @@ if __name__ == '__main__':
     # graph the results
     YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+        plot_moving_average=True, moving_average_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
         metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
         # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
         # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
