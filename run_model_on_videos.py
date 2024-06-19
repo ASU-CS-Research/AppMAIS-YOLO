@@ -142,7 +142,8 @@ class YOLOModel:
                            font_size: Optional[int] = 22, markersize: Optional[int] = 10, tickwidth: Optional[int] = 3,
                            metric: Optional[str] = "DroneToWorkerRatio", ylabel: Optional[str] = "Drone to Worker Ratio",
                            plot_title: Optional[str] = "Number of Drones and Workers Detected",
-                           plot_moving_average: Optional[bool] = False, moving_average_window: Optional[int] = 5):
+                           plot_rolling_average: Optional[bool] = False, moving_rolling_window: Optional[int] = 5,
+                           only_show_rolling_average: Optional[bool] = False):
         """
         Plots the number of drones and workers detected in each frame.
 
@@ -159,9 +160,10 @@ class YOLOModel:
             ylabel (Optional[str]): The y-axis label of the plot. Default is "Drone to Worker Ratio". X axis is always
               the time stamp.
             plot_title (Optional[str]): The title of the plot. Default is "Number of Drones and Workers Detected".
-            plot_moving_average (Optional[bool]): Whether to plot the moving average. Default is False.
-            moving_average_window (Optional[int]): The window size for the moving average. Default is 5, ignored
+            plot_rolling_average (Optional[bool]): Whether to plot the rolling average. Default is False.
+            moving_rolling_window (Optional[int]): The window size for the rolling average. Default is 5, ignored
               if plot_moving_average is False.
+            only_show_rolling_average (Optional[bool]): Whether to only show the rolling average. Default is False.
         """
         # Make sure there is at least one entry in the DataFrame
         if results.shape[0] == 0:
@@ -181,11 +183,12 @@ class YOLOModel:
             hive_results = results[results["HiveName"] == hive_name]
             hive_results = hive_results[hive_results["PopulationMarker"] == population_marker]
             hive_label = f"{hive_name}{population_marker}" if population_marker != 'A' else hive_name
-            ax.scatter(hive_results["TimeStamp"], hive_results[metric],
-                       label=hive_label, alpha=alpha)
-            if plot_moving_average:
-                moving_average = hive_results[metric].rolling(window=moving_average_window).mean()
-                ax.plot(hive_results["TimeStamp"], moving_average, label=f"{hive_label} Moving Average",
+            if not only_show_rolling_average:
+                ax.scatter(hive_results["TimeStamp"], hive_results[metric],
+                           label=hive_label, alpha=alpha)
+            if plot_rolling_average:
+                moving_average = hive_results[metric].rolling(window=moving_rolling_window).mean()
+                ax.plot(hive_results["TimeStamp"], moving_average, label=f"{hive_label} Rolling Average",
                         linestyle='dashed')
         ax.set_xlabel("Time Stamp")
         # Rotate the x-axis labels for better readability
@@ -428,6 +431,44 @@ class YOLOModel:
                     active_hives.append(hive_name_with_population_marker)
         return active_hives
 
+    def get_model_output_for_frame_from_video(self, video_filepath: str, frame_number: int):
+        """
+        Retrieves the output of the model for the given frame number in the video at the given file path.
+
+        Args:
+            video_filepath (str): The file path to the video.
+            frame_number (int): The frame number to get the model output for.
+
+        Returns:
+            ultralytics.YOLO: The output of the model for the given frame.
+        """
+        cap = cv2.VideoCapture(video_filepath)
+        file_extension = video_filepath.split('.')[-1]
+        frame = None
+        if file_extension == 'mp4':
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            ret, frame = cap.read()
+            if frame is None:
+                logger.warning(f"Could not read frame {frame_number} from video at {video_filepath}. Returning None.")
+        elif file_extension == 'h264':
+            i = 1
+            while i < frame_number:
+                ret, frame = cap.read()
+                if frame is None:
+                    logger.warning(f"Could not read frame {i} from video at {video_filepath}. Returning None.")
+                    break
+                i += 1
+        else:
+            logger.warning(f"Could not read video at {video_filepath}. Currently only supports .h264 and .mp4, "
+                           f"got .{file_extension}. Returning None.")
+            return None
+        predictions = self._model.predict(frame, conf=self._confidence_threshold, save=False, stream=True)
+        for j, prediction in enumerate(predictions):
+            num_drones = 0
+            num_workers = 0
+            for label in prediction.boxes.cpu().numpy():
+                print(label)
+
     @staticmethod
     def _retrieve_frame_from_video(video_filepath: str, frame_number: int) -> Optional[np.ndarray]:
         """
@@ -502,22 +543,14 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2023, 9, 10)
-    end_date = datetime(2023, 9, 30)
+    start_date = datetime(2023, 4, 1)
+    end_date = datetime(2024, 4, 1)
+
     # start_time = end_time = time(15, 0, 0)
-    # start_date = datetime(2022, 5, 1)
-    # end_date = datetime(2024, 5, 30)
-    start_time = time(14, 0, 0)
+    start_time = time(15, 0, 0)
     end_time = time(16, 0, 0)
     # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    # hive_list = ["AppMAIS11R", "AppMAIS11L"]
-    # hive_list = ["AppMAIS13R", "AppMAIS13L"]
-    hive_list = ["AppMAIS13L", "AppMAIS13R"]
-    # results = yolo_model.find_consecutive_ratios_over(
-    #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=5
-    # )
-    # print(results)
-    # exit(0)
+    hive_list = ["AppMAIS16L", "AppMAIS16LB", "AppMAIS16R"]
     results = yolo_model.run_model_on_videos(
         start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
         upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
@@ -525,9 +558,18 @@ if __name__ == '__main__':
     # graph the results
     YOLOModel.plot_model_results(
         results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        plot_moving_average=True, moving_average_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
+        # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
+        # only_show_rolling_average=True,
         metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
         # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
         # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
 
+    # results = yolo_model.find_consecutive_ratios_over(
+    #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4
+    # )
+    # print(results)
+
+    # video_filepath = "/mnt/appmais/AppMAIS17L/2024-06-14/video/AppMAIS17L@2024-06-14@14-00-00.mp4"
+    # frame_number = 1794 // 2
+    # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, frame_number)
