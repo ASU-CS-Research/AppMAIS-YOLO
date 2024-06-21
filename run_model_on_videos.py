@@ -444,30 +444,30 @@ class YOLOModel:
         """
         cap = cv2.VideoCapture(video_filepath)
         file_extension = video_filepath.split('.')[-1]
-        frame = None
-        if file_extension == 'mp4':
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-            ret, frame = cap.read()
-            if frame is None:
-                logger.warning(f"Could not read frame {frame_number} from video at {video_filepath}. Returning None.")
-        elif file_extension == 'h264':
-            i = 1
-            while i < frame_number:
-                ret, frame = cap.read()
-                if frame is None:
-                    logger.warning(f"Could not read frame {i} from video at {video_filepath}. Returning None.")
-                    break
-                i += 1
-        else:
-            logger.warning(f"Could not read video at {video_filepath}. Currently only supports .h264 and .mp4, "
-                           f"got .{file_extension}. Returning None.")
+        frame = self._retrieve_frame_from_video(video_filepath, frame_number)
+        if frame is None:
+            logger.error(f"Could not retrieve frame {frame_number} from video at {video_filepath}. "
+                         f"Is the filepath correct?")
             return None
         predictions = self._model.predict(frame, conf=self._confidence_threshold, save=False, stream=True)
+        edited_frame = frame.copy()
+        num_drones = 0
+        num_workers = 0
         for j, prediction in enumerate(predictions):
-            num_drones = 0
-            num_workers = 0
-            for label in prediction.boxes.cpu().numpy():
-                print(label)
+                for box in prediction.boxes.cpu():
+                    x1, y1, x2, y2, conf, class_id = box.data.tolist()[0]
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                    color = (0, 0, 0)
+                    if class_id == DetectionClasses.DRONE.value:
+                        color = (0, 0, 255)
+                        num_drones += 1
+                    elif class_id == DetectionClasses.WORKER.value:
+                        color = (140, 230, 240)
+                        num_workers += 1
+                    cv2.rectangle(edited_frame, (x1, y1), (x2, y2), color, 2)
+        logger.info(f"Detected {num_drones} drones and {num_workers} workers in frame {frame_number} of video at "
+                    f"{video_filepath}.")
+        return edited_frame
 
     @staticmethod
     def _retrieve_frame_from_video(video_filepath: str, frame_number: int) -> Optional[np.ndarray]:
@@ -543,33 +543,35 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2023, 4, 1)
-    end_date = datetime(2024, 4, 1)
+    start_date = datetime(2024, 6, 15)
+    end_date = datetime(2024, 6, 21)
 
-    # start_time = end_time = time(15, 0, 0)
-    start_time = time(15, 0, 0)
-    end_time = time(16, 0, 0)
-    # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    hive_list = ["AppMAIS16L", "AppMAIS16LB", "AppMAIS16R"]
-    results = yolo_model.run_model_on_videos(
-        start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
-        upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
-    )
-    # graph the results
-    YOLOModel.plot_model_results(
-        results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
-        # only_show_rolling_average=True,
-        metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
-        # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
-        # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
-    )
+    # # start_time = end_time = time(15, 0, 0)
+    # start_time = time(13, 0, 0)
+    # end_time = time(20, 0, 0)
+    # # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+    # hive_list = ["AppMAIS12R"]
+    # results = yolo_model.run_model_on_videos(
+    #     start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
+    #     upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
+    # )
+    # # graph the results
+    # YOLOModel.plot_model_results(
+    #     results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+    #     # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
+    #     # only_show_rolling_average=True,
+    #     # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+    #     # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
+    #     metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
+    # )
 
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4
     # )
     # print(results)
 
-    # video_filepath = "/mnt/appmais/AppMAIS17L/2024-06-14/video/AppMAIS17L@2024-06-14@14-00-00.mp4"
-    # frame_number = 1794 // 2
-    # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, frame_number)
+    video_filepath = "/mnt/appmais/AppMAIS17L/2023-05-09/video/AppMAIS17L@2024-06-18@15-00-00.mp4"
+    prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index)
+    if prediction is not None:
+        plt.imshow(cv2.cvtColor(prediction, cv2.COLOR_BGR2RGB))
+        plt.show()
