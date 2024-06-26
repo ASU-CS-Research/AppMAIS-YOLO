@@ -442,8 +442,6 @@ class YOLOModel:
         Returns:
             ultralytics.YOLO: The output of the model for the given frame.
         """
-        cap = cv2.VideoCapture(video_filepath)
-        file_extension = video_filepath.split('.')[-1]
         frame = self._retrieve_frame_from_video(video_filepath, frame_number)
         if frame is None:
             logger.error(f"Could not retrieve frame {frame_number} from video at {video_filepath}. "
@@ -532,6 +530,76 @@ class YOLOModel:
         return next_bee_install_date
 
 
+class DataType(Enum):
+    """
+    An enumeration of the different types of data that can be retrieved from the database.
+    The value should be the desired key for the data in the database.
+    """
+    SCALE = "Scale"
+    TEMPERATURE = "Temperature"
+    HUMIDITY = "Humidity"
+    VIDEO = "FileSize"
+
+
+class OtherDataGetter:
+    """
+    Gets other data from the database, other than the data retrieved by the YOLOmodel class.
+    """
+
+    def __init__(self, mongo_client: MongoClient):
+        self._bee_db = mongo_client.beeDB
+        self._hive_collection = self._bee_db.HiveWorkspace
+        self._video_files_collection = self._bee_db.VideoFiles
+        self._scale_collection = self._bee_db.Scale
+        self._temperature_humidity_collection = self._bee_db.TemperatureHumidity
+
+    def get_data_for_hive_range(self, hive_names: List[str], data_type: DataType,
+                                start_date: datetime, end_date: datetime, start_time: Optional[time] = None,
+                                end_time: Optional[time] = None):
+        """
+        Gets data for the given hive in the given time frame
+        Args:
+            hive_names:
+            data_type:
+            start_date:
+            end_date:
+            start_time:
+            end_time:
+
+        Returns:
+
+        """
+        if data_type == DataType.SCALE:
+            collection = self._scale_collection
+        elif data_type == DataType.TEMPERATURE or data_type == DataType.HUMIDITY:
+            collection = self._temperature_humidity_collection
+        elif data_type == DataType.VIDEO:
+            collection = self._video_files_collection
+        else:
+            raise ValueError(f"Data type {data_type} not recognized.")
+        query = {
+            "HiveName": { "$in": hive_names},
+            "TimeStamp": { "$gte": start_date, "$lte": end_date }
+        }
+        cursor = collection.find(query)
+        results = []
+        for document in cursor:
+            if start_time is not None or end_time is not None:
+                document_time = document["TimeStamp"].time()
+                if start_time is not None and document_time < start_time:
+                    continue
+                if end_time is not None and document_time > end_time:
+                    continue
+            if document[data_type.value] == '':
+                continue
+            hive_name, population_marker = YOLOModel.get_population_marker_from_hive_name(document["HiveName"])
+            results.append({"TimeStamp": document["TimeStamp"], f"{data_type.value}": document[data_type.value],
+                           "HiveName": hive_name, "PopulationMarker": population_marker})
+        return pd.DataFrame(results)
+
+
+
+
 if __name__ == '__main__':
     auth_json = os.path.abspath("auth.json")
     with open(auth_json, "r") as f:
@@ -543,35 +611,43 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2024, 6, 15)
-    end_date = datetime(2024, 6, 21)
+    start_date = datetime(2022, 6, 20)
+    end_date = datetime(2022, 7, 10)
 
-    # # start_time = end_time = time(15, 0, 0)
-    # start_time = time(13, 0, 0)
-    # end_time = time(20, 0, 0)
-    # # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    # hive_list = ["AppMAIS12R"]
-    # results = yolo_model.run_model_on_videos(
-    #     start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
-    #     upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
-    # )
-    # # graph the results
-    # YOLOModel.plot_model_results(
-    #     results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-    #     # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
-    #     # only_show_rolling_average=True,
-    #     # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
-    #     # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
-    #     metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
-    # )
+    # start_time = end_time = time(15, 0, 0)
+    start_time = time(12, 0, 0)
+    end_time = time(16, 0, 0)
+    # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
+    hive_list = ["AppMAIS12L", "AppMAIS12R"]
+    results = yolo_model.run_model_on_videos(
+        start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
+        upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
+    )
+    # graph the results
+    YOLOModel.plot_model_results(
+        results=results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+        # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
+        # only_show_rolling_average=True,
+        # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
+        # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
+        metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
+    )
+
+    scale_results = OtherDataGetter(mongo_client=mongo_client).get_data_for_hive_range(
+        hive_names=hive_list, data_type=DataType.SCALE, start_date=start_date, end_date=end_date
+    )
+    YOLOModel.plot_model_results(
+        scale_results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+        metric="Scale", ylabel="Scale (kg)", plot_title="Scale Against Time"
+    )
 
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4
     # )
     # print(results)
 
-    video_filepath = "/mnt/appmais/AppMAIS17L/2023-05-09/video/AppMAIS17L@2024-06-18@15-00-00.mp4"
-    prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index)
-    if prediction is not None:
-        plt.imshow(cv2.cvtColor(prediction, cv2.COLOR_BGR2RGB))
-        plt.show()
+    # video_filepath = "/mnt/appmais/AppMAIS13R/2023-07-15/video/AppMAIS13R@2023-07-15@15-00-00.mp4"
+    # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index + 1)
+    # if prediction is not None:
+    #     plt.imshow(cv2.cvtColor(prediction, cv2.COLOR_BGR2RGB))
+    #     plt.show()
