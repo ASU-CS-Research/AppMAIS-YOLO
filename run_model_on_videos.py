@@ -543,7 +543,8 @@ class DataType(Enum):
 
 class OtherDataGetter:
     """
-    Gets other data from the database, other than the data retrieved by the YOLOmodel class.
+    Gets "other" data from the database, other than the data retrieved by the YOLOmodel class. Meant mostly as a set of
+    helper methods for visualization, used in conjunction with the YOLOModel class.
     """
 
     def __init__(self, mongo_client: MongoClient):
@@ -650,7 +651,7 @@ if __name__ == '__main__':
     #     metric=other_data_type.value, ylabel="Weight (kg)", plot_title="Weight Against Time"
     # )
 
-    # # For finding consecutive days where the drone to worker ratio is over a certain threshold, based on the model
+    # # For finding consecutive days in which the drone to worker ratio is over a certain threshold, based on the model
     # # predictions present in the database already.
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4

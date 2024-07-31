@@ -107,7 +107,7 @@ def run_predictions_on_video(model, video_filepath, destination_video_path, show
 
 
 if __name__ == '__main__':
-    model_path = os.path.abspath('./runs/detect/train7/weights/best.pt')
+    model_path = os.path.abspath('v1_files/runs/detect/train7/weights/best.pt')
     video_filepath = os.path.abspath('videos/AppMAIS3LB@2023-06-26@11-55-00.h264')
     frame_ind = 120
     model = load_model_ultralytics(model_path)
