@@ -561,8 +561,8 @@ class OtherDataGetter:
         Args:
             hive_names (List[str]): The names of the hives to get the data for.
             data_type (DataType): The type of data to get.
-            start_date (datetime): The start date for the data.
-            end_date (datetime): The end date for the data.
+            start_date (datetime): The date to begin the data retrieval with.
+            end_date (datetime): The last date (inclusive) to retrieve data from.
             start_time (Optional[time]): The start time for the data. If None, all times will be used. This is used
               to filter the data, such as a start time of 12pm means that any day's data before 12pm will be
               ignored.
