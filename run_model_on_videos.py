@@ -622,7 +622,7 @@ if __name__ == '__main__':
     start_date = datetime(2023, 4, 1)
     end_date = datetime(2023, 6, 1)
 
-    # start_time = end_time = time(15, 0, 0)
+    # For plotting the results over a given time frame and hives
     start_time = time(14, 0, 0)
     end_time = time(16, 0, 0)
     # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
@@ -640,7 +640,7 @@ if __name__ == '__main__':
         metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
         # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
-    #
+    # # With the addition of allowing for other data types to be retrieved
     # other_data_type = DataType.SCALE
     # scale_results = OtherDataGetter(mongo_client=mongo_client).get_data_for_hive_range(
     #     hive_names=hive_list, data_type=other_data_type, start_date=start_date, end_date=end_date
@@ -650,13 +650,16 @@ if __name__ == '__main__':
     #     metric=other_data_type.value, ylabel="Weight (kg)", plot_title="Weight Against Time"
     # )
 
+    # # For finding consecutive days where the drone to worker ratio is over a certain threshold, based on the model
+    # # predictions present in the database already.
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4
     # )
     # print(results)
 
+    # # For getting the model output for a specific frame in a video, debugging purposes.
     # video_filepath = "/mnt/appmais/AppMAIS12L/2022-07-07/video/AppMAIS12L@2022-07-07@15-00-00.mp4"
-    # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index + 1)
+    # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index)
     # if prediction is not None:
     #     plt.imshow(cv2.cvtColor(prediction, cv2.COLOR_BGR2RGB))
     #     plt.show()
