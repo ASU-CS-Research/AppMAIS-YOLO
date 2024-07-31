@@ -555,19 +555,27 @@ class OtherDataGetter:
 
     def get_data_for_hive_range(self, hive_names: List[str], data_type: DataType,
                                 start_date: datetime, end_date: datetime, start_time: Optional[time] = None,
-                                end_time: Optional[time] = None):
+                                end_time: Optional[time] = None) -> pd.DataFrame:
         """
         Gets data for the given hive in the given time frame
         Args:
-            hive_names:
-            data_type:
-            start_date:
-            end_date:
-            start_time:
-            end_time:
+            hive_names (List[str]): The names of the hives to get the data for.
+            data_type (DataType): The type of data to get.
+            start_date (datetime): The start date for the data.
+            end_date (datetime): The end date for the data.
+            start_time (Optional[time]): The start time for the data. If None, all times will be used. This is used
+              to filter the data, such as a start time of 12pm means that any day's data before 12pm will be
+              ignored.
+            end_time (Optional[time]): The end time for the data. If None, all times will be used. This is used
+              to filter the data, such as an end time of 4pm means that any day's data after 4pm will be ignored.
 
         Returns:
-
+            pd.DataFrame: A DataFrame with the data for the given hive in the given time frame. The columns are:
+                - TimeStamp: The time stamp of the data.
+                - The data type value: The value of the data. For example, you could have "Scale": 32.0 for
+                    DataType.SCALE.
+                - HiveName: The name of the hive.
+                - PopulationMarker: The population marker for the hive.
         """
         if data_type == DataType.SCALE:
             collection = self._scale_collection
@@ -611,14 +619,14 @@ if __name__ == '__main__':
         pretrained_weights_path=pretrained_weights_path, mongo_client=mongo_client, confidence_threshold=0.64,
         batch_size=64, desired_frame_ind=desired_frame_index
     )
-    start_date = datetime(2022, 6, 20)
-    end_date = datetime(2022, 7, 10)
+    start_date = datetime(2023, 4, 1)
+    end_date = datetime(2023, 6, 1)
 
     # start_time = end_time = time(15, 0, 0)
-    start_time = time(12, 0, 0)
+    start_time = time(14, 0, 0)
     end_time = time(16, 0, 0)
     # hive_list = yolo_model.get_active_hives_in_time_frame(start_date=start_date, end_date=end_date)
-    hive_list = ["AppMAIS12L", "AppMAIS12R"]
+    hive_list = ["AppMAIS2RB", "AppMAIS2L"]
     results = yolo_model.run_model_on_videos(
         start_datetime=start_date, end_datetime=end_date, hive_list=hive_list, start_time=start_time, end_time=end_time,
         upload_to_mongo=True, stride=1, # exclude_months=[12, 1, 2, 3]
@@ -629,24 +637,25 @@ if __name__ == '__main__':
         # plot_rolling_average=True, moving_rolling_window=(end_time.hour - start_time.hour) * 60 // 5 * 4,
         # only_show_rolling_average=True,
         # metric="DroneToWorkerRatio", ylabel="Drone to Worker Ratio", plot_title="Drone to Worker Ratio Against Time"
-        # metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
-        metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
+        metric="NumDrones", ylabel="Number of Drones Detected", plot_title="Number of Drones Detected Against Time"
+        # metric="NumWorkers", ylabel="Number of Workers Detected", plot_title="Number of Workers Detected Against Time"
     )
-
-    scale_results = OtherDataGetter(mongo_client=mongo_client).get_data_for_hive_range(
-        hive_names=hive_list, data_type=DataType.SCALE, start_date=start_date, end_date=end_date
-    )
-    YOLOModel.plot_model_results(
-        scale_results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
-        metric="Scale", ylabel="Scale (kg)", plot_title="Scale Against Time"
-    )
+    #
+    # other_data_type = DataType.SCALE
+    # scale_results = OtherDataGetter(mongo_client=mongo_client).get_data_for_hive_range(
+    #     hive_names=hive_list, data_type=other_data_type, start_date=start_date, end_date=end_date
+    # )
+    # YOLOModel.plot_model_results(
+    #     scale_results, hive_names=hive_list, alpha=0.9, figsize=(20, 20), font_size=22, markersize=11, tickwidth=4,
+    #     metric=other_data_type.value, ylabel="Weight (kg)", plot_title="Weight Against Time"
+    # )
 
     # results = yolo_model.find_consecutive_ratios_over(
     #     drone_to_worker_threshold=0.5, start_date=start_date, end_date=end_date, consecutive_days_threshold=4
     # )
     # print(results)
 
-    # video_filepath = "/mnt/appmais/AppMAIS13R/2023-07-15/video/AppMAIS13R@2023-07-15@15-00-00.mp4"
+    # video_filepath = "/mnt/appmais/AppMAIS12L/2022-07-07/video/AppMAIS12L@2022-07-07@15-00-00.mp4"
     # prediction = yolo_model.get_model_output_for_frame_from_video(video_filepath, desired_frame_index + 1)
     # if prediction is not None:
     #     plt.imshow(cv2.cvtColor(prediction, cv2.COLOR_BGR2RGB))
