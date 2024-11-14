@@ -43,15 +43,14 @@ def plot(x, y, x_label, y_label, title, suptitle, save_dest=None, plot_x_e_y=Fal
         plt.show()
 
 if __name__ == "__main__":
-    # model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
-    model_path = os.path.abspath("/home/bee/bee-detection/trained_on_11r_2022.pt")
+    model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
+    # model_path = os.path.abspath("/home/bee/bee-detection/trained_on_11r_2022.pt")
     model = ultralytics.YOLO(model_path)
-    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
+    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/split_dataset/val/')
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/val/")
-    # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
+    data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test')
     # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
-    #
     # data_path = os.path.abspath("/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/train/")
     images_names = os.listdir(os.path.join(data_path, "images"))
     images_names.sort()
@@ -166,7 +165,7 @@ if __name__ == "__main__":
          "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
 
     plot([workers_true, drones_true], [workers_pred, drones_pred], "True Count", "Predicted Count",
-         f"Bee Count Predicted against True",
+         f"Bee Count Predicted vs. Actual",
          f"{os.path.basename(model_path)[:-3]}, {os.path.basename(data_path)}, w r^2 "
          f"{r_squared_workers: .3f}, d r^2 {r_squared_drones: .3f}",
          "pred_v_true_both_classes.png", plot_x_e_y=True, show=True, key=["Workers", "Drones"])
