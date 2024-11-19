@@ -15,6 +15,11 @@ from betabinomial import beta_binom_on_data, parse_images_and_labels, rmse_on_da
 # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test')
 # data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS1s_labeled_data/complete_data')
 data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test_2')
+# data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/stretch_test')
+# data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/final_split_dataset/test')
+# data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data')
+# data_path = os.path.abspath('/home/bee/bee-detection/data_appmais_lab/AppMAIS11s_labeled_data/')
+
 model_path = os.path.abspath("/home/bee/bee-detection/final_model.pt")
 ultralytics_model = ultralytics.YOLO(model_path)
 # ultralytics_model = ultralytics.YOLO("/home/bee/bee-detection/trained_on_11r_2022.pt")
@@ -38,6 +43,8 @@ images, images_filenames, labels_list = parse_images_and_labels(data_path)
 # print(f"Box object:")
 # print(f"box: {boxes.cls}")
 # print(f"box: {boxes.xyxy}")
+#
+# exit(0)
 
 # predictions = []
 #
@@ -150,9 +157,71 @@ def get_tpr_fpr(label_pred_counts: List[List[int]]):
     worker_fpr = worker_fp / worker_samples
     return drone_tpr, drone_fpr, worker_tpr, worker_fpr
 
+def get_tpr_fpr_by_iou_by_image(image_labels, image_results):
+    boxes_xyxy = [image_result.boxes[0][0].data.tolist()[0] for image_result in image_results]
+    boxes_cls = [image_result.boxes[0][1].data.tolist()[0] for image_result in image_results]
+    boxes = [[cls, *xyxy] for cls, xyxy in zip(boxes_cls, boxes_xyxy)]
+
+    # boxes = list of elements like [cls, x1, y1, x2, y2], predicted by the model
+    # image_labels = list of elements like [cls, x1, y1, x2, y2], ground truth
+
+    tp = 0
+    fp = 0
+    samples = 0
+    predicted_labels = [0 for _ in range(len(image_labels))]
+
+    for box in boxes:
+        samples += 1
+        iou_scores = [iou(box[1:], label[1:]) for label in image_labels]
+        idx_max_iou = np.argmax(iou_scores)
+
+        class OutOfLabels(Exception):
+            pass
+
+        try:
+            while predicted_labels[idx_max_iou] == 1:
+                iou_scores[idx_max_iou] = 0
+                try:
+                    idx_max_iou = np.argmax(iou_scores)
+                except ValueError:
+                    # no more labels to match
+                    # the model predicted more boxes than there are labels
+                    fp += 1
+                    raise OutOfLabels
+        except OutOfLabels:
+            continue
+
+        if iou_scores[idx_max_iou] < 0.5 or box[0] != image_labels[idx_max_iou][0]:
+            fp += 1
+        else:
+            predicted_labels[idx_max_iou] = 1
+            tp += 1
+
+
+
+
+        # if iou_scores[idx_max_iou] > 0.5:
+        #     if predicted_labels[idx_max_iou] == 0:
+        #     if box[0] == 0:
+        #         tp += 1
+        #     else:
+        #         fp += 1
+        # else:
+        #     if box[0] == 0:
+        #         fp += 1
+
+def area_under_curve(tpr: List[float], fpr: List[float]) -> float:
+    auc = 0
+    for i in range(1, len(tpr)):
+        auc += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2
+    return auc
+
 conf_and_rates = []
 
-for conf in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+confs = np.arange(0.0, 1.0, 0.05)
+# reverse confs
+confs = confs[::-1]
+for conf in confs:
     label_pred_counts = get_label_pred_counts_for_conf(conf)
     drone_tpr, drone_fpr, worker_tpr, worker_fpr = get_tpr_fpr(label_pred_counts)
     print(f"conf: {conf} drone_tpr: {drone_tpr} drone_fpr: {drone_fpr} worker_tpr: {worker_tpr} worker_fpr: {worker_fpr}")
@@ -165,7 +234,7 @@ conf_and_rates = np.array(conf_and_rates)
 plt.plot(conf_and_rates[:, 2], conf_and_rates[:, 1], label="drone")
 # annotate the conf for each point
 for conf, drone_tpr, drone_fpr, worker_tpr, worker_fpr in conf_and_rates:
-    plt.annotate(f"{conf}", (drone_fpr, drone_tpr))
+    plt.annotate(f"{conf:.2f}", (drone_fpr, drone_tpr))
 plt.xlabel("FPR")
 plt.ylabel("TPR")
 plt.title("Drone ROC curve")
@@ -174,9 +243,19 @@ plt.show()
 plt.plot(conf_and_rates[:, 4], conf_and_rates[:, 3], label="worker")
 # annotate the conf for each point
 for conf, drone_tpr, drone_fpr, worker_tpr, worker_fpr in conf_and_rates:
-    plt.annotate(f"{conf}", (worker_fpr, worker_tpr))
+    plt.annotate(f"{conf:.2f}", (worker_fpr, worker_tpr))
 plt.xlabel("FPR")
 plt.ylabel("TPR")
 plt.title("Worker ROC curve")
+
+auc_drone = area_under_curve(conf_and_rates[:, 1], conf_and_rates[:, 2])
+auc_worker = area_under_curve(conf_and_rates[:, 3], conf_and_rates[:, 4])
+
 plt.show()
 
+print(f"Drone AUC: {auc_drone}")
+print(f"Worker AUC: {auc_worker}")
+#  why is the output of the area under curve function negative?
+#  the output of the area under curve function is negative because the fpr and tpr values are not sorted in ascending order.
+print(f"conf_and_rates is conf, drone_tpr, drone_fpr, worker_tpr, worker_fpr")
+pprint(conf_and_rates)
