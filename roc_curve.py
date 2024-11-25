@@ -178,10 +178,13 @@ def get_tpr_fpr_by_iou_by_image(image_labels, image_results):
     # boxes_cls = [box.cls for box in image_results.boxes[0][1].data.tolist()[0]]
 
     boxes_cls = []
-    for box in image_results.boxes[0][1]:
-        box_data_list = box.data.tolist()[0]
-        cls = box_data_list.cls
-        boxes_cls.append(cls)
+    if len(image_results.boxes[0]) > 1:
+        for box in image_results.boxes[0][1]:
+            box_data_list = box.data.tolist()[0]
+            cls = box_data_list.cls
+            boxes_cls.append(cls)
+    else:
+        return 0, 0
 
     # boxes_cls = []
     # for image_result in image_results:
@@ -307,12 +310,19 @@ def roc_curve_by_iou():
     for conf in confs:
         results = ultralytics_model.predict(images, conf=conf)
 
+        tp_rates = []
+        fp_rates = []
         for labels, result in zip(labels_list, results):
             tpr, fpr = get_tpr_fpr_by_iou_by_image(labels, result)
             print(f"conf: {conf} tpr: {tpr} fpr: {fpr}")
-            conf_and_rates.append([conf, tpr, fpr])
+            tp_rates.append(tpr)
+            fp_rates.append(fpr)
 
-    plt.plot(conf_and_rates[:, 2], conf_and_rates[:, 1])
+        conf_and_rates.append([conf, np.average(tp_rates), np.average(fp_rates)])
+
+    # pprint(conf_and_rates)
+    # exit(1)
+    plt.plot(list(conf_and_rates[:, 2]), list(conf_and_rates[:, 1]))
     plt.xlabel("FPR")
     plt.ylabel("TPR")
     plt.title("ROC curve")
