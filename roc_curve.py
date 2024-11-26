@@ -322,14 +322,16 @@ def roc_curve_by_iou():
 
     # pprint(conf_and_rates)
     # exit(1)
-    plt.plot(list(conf_and_rates[:, 2]), list(conf_and_rates[:, 1]))
+    # plt.plot(list(conf_and_rates[:, 2]), list(conf_and_rates[:, 1]))
+    plt.plot(np.array(conf_and_rates)[:, 2], np.array(conf_and_rates)[:, 1])
     plt.xlabel("FPR")
     plt.ylabel("TPR")
     plt.title("ROC curve")
     for conf, tpr, fpr in conf_and_rates:
         plt.annotate(f"{conf:.2f}", (fpr, tpr))
 
-    auc = area_under_curve(conf_and_rates[:, 1], conf_and_rates[:, 2])
+    # auc = area_under_curve(conf_and_rates[:, 1], conf_and_rates[:, 2])
+    auc = area_under_curve(np.array(conf_and_rates)[:, 1], np.array(conf_and_rates)[:, 2])
 
     plt.annotate(f"AUC: {auc:.2f}", (0.5, 0.5))
 
